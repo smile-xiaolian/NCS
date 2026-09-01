@@ -1,0 +1,50 @@
+# ========== 编译产物 ==========
+build/
+cmake-build-*/
+CMakeCache.txt
+CMakeFiles/
+Makefile
+cmake_install.cmake
+*.o
+*.so
+*.a
+*.exe
+*.dll
+*.pdb
+*.ilk
+*.user
+*.suo
+
+# ========== IDE 配置 ==========
+.vs/
+.vscode/
+.idea/
+*.code-workspace
+*.user
+*.suo
+
+# ========== Qt 相关 ==========
+*.pro.user
+moc_*.cpp
+qrc_*.cpp
+ui_*.h
+*.moc
+
+# ========== 运行时数据（每人本地不同） ==========
+data/charge_platform.db
+data/avatars/
+logs/
+*.log
+__pycache__/
+*.pyc
+
+# ========== 虚拟机文件（太大） ==========
+*.ova
+*.vmdk
+*.vdi
+*.ovf
+
+# ========== 系统文件 ==========
+.DS_Store
+Thumbs.db
+desktop.ini
