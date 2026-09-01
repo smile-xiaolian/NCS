@@ -1,0 +1,9 @@
+core_lib_autogen/timestamp: \
+	/home/bit/projects/core/CMakeLists.txt \
+	/home/bit/projects/core/database/DatabaseManager.cpp \
+	/home/bit/projects/core/database/DatabaseManager.h \
+	/home/bit/projects/core/service/PlatformService.cpp \
+	/home/bit/projects/core/service/PlatformService.h \
+	/home/bit/projects/core/utils/Haversine.cpp \
+	/home/bit/projects/core/utils/Haversine.h \
+	/usr/bin/cmake

@@ -1,0 +1,4 @@
+ncs_admin_autogen/timestamp: \
+	/home/bit/projects/client_admin/CMakeLists.txt \
+	/home/bit/projects/client_admin/main.cpp \
+	/usr/bin/cmake

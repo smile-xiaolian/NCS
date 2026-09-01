@@ -1,0 +1,4 @@
+ncs_user_autogen/timestamp: \
+	/home/bit/projects/client_user/CMakeLists.txt \
+	/home/bit/projects/client_user/main.cpp \
+	/usr/bin/cmake

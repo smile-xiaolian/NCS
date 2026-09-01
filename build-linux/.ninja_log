@@ -1,0 +1,24 @@
+# ninja log v5
+37	187	1788255036000000000	core/core_lib_autogen/timestamp	6ed38da959458c9d
+37	187	1788255036000000000	core/core_lib_autogen/mocs_compilation.cpp	6ed38da959458c9d
+37	187	1788255036000000000	/home/bit/projects/build-linux/core/core_lib_autogen/timestamp	6ed38da959458c9d
+37	187	1788255036000000000	/home/bit/projects/build-linux/core/core_lib_autogen/mocs_compilation.cpp	6ed38da959458c9d
+193	262	1788255036000000000	core/CMakeFiles/core_lib.dir/core_lib_autogen/mocs_compilation.cpp.o	e2f979a004f7cd9a
+195	3442	1788255039000000000	core/CMakeFiles/core_lib.dir/database/DatabaseManager.cpp.o	4c15dc25fd2eff77
+3547	4030	1788255040000000000	core/CMakeFiles/core_lib.dir/utils/Haversine.cpp.o	8ca9a858da03422
+272	4952	1788255041000000000	core/CMakeFiles/core_lib.dir/service/PlatformService.cpp.o	56e41c079f892666
+4971	6178	1788255042000000000	core/libcore_lib.a	fefc15436e4d79f9
+6180	6363	1788255042000000000	client_user/ncs_user_autogen/timestamp	c45395641d74f3e7
+6180	6363	1788255042000000000	client_user/ncs_user_autogen/mocs_compilation.cpp	c45395641d74f3e7
+6180	6363	1788255042000000000	/home/bit/projects/build-linux/client_user/ncs_user_autogen/timestamp	c45395641d74f3e7
+6180	6363	1788255042000000000	/home/bit/projects/build-linux/client_user/ncs_user_autogen/mocs_compilation.cpp	c45395641d74f3e7
+6183	6394	1788255042000000000	client_admin/ncs_admin_autogen/timestamp	a7c2dc8bcef3c19
+6183	6394	1788255042000000000	client_admin/ncs_admin_autogen/mocs_compilation.cpp	a7c2dc8bcef3c19
+6183	6394	1788255042000000000	/home/bit/projects/build-linux/client_admin/ncs_admin_autogen/timestamp	a7c2dc8bcef3c19
+6183	6394	1788255042000000000	/home/bit/projects/build-linux/client_admin/ncs_admin_autogen/mocs_compilation.cpp	a7c2dc8bcef3c19
+6367	6446	1788255042000000000	client_user/CMakeFiles/ncs_user.dir/ncs_user_autogen/mocs_compilation.cpp.o	8f7c83d9c8117450
+6450	6514	1788255042000000000	client_admin/CMakeFiles/ncs_admin.dir/ncs_admin_autogen/mocs_compilation.cpp.o	c3d03bb946c8ff85
+6395	11994	1788255048000000000	client_user/CMakeFiles/ncs_user.dir/main.cpp.o	2df2b2f08f0e3e5b
+6517	12117	1788255048000000000	client_admin/CMakeFiles/ncs_admin.dir/main.cpp.o	f284ecff3ac629fd
+12039	14126	1788255050000000000	bin/ncs_user	ad4bcf7285da8e3a
+12160	14161	1788255050000000000	bin/ncs_admin	fb45443f972c53b0

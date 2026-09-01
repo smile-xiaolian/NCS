@@ -1,0 +1,4 @@
+#!/usr/bin/env python3
+import json,sqlite3,argparse,os
+from datetime import datetime
+p=argparse.ArgumentParser();p.add_argument('--db',required=True);p.add_argument('--out',default='public/data/dashboard.json');a=p.parse_args();c=sqlite3.connect(a.db).cursor();c.execute("SELECT count(*),coalesce(sum(amount),0) FROM charging_order WHERE status=2");o,r=c.fetchone();c.execute("SELECT count(*) FROM charger WHERE status<>2");on=c.fetchone()[0];c.execute("SELECT count(*) FROM user");u=c.fetchone()[0];c.execute("SELECT substr(end_time,1,10),sum(amount) FROM charging_order WHERE status=2 GROUP BY 1 ORDER BY 1 DESC LIMIT 30");rows=[{'day':x[0],'revenue':x[1]} for x in reversed(c.fetchall())];os.makedirs(os.path.dirname(a.out),exist_ok=True);json.dump({'generated_at':datetime.now().strftime('%F %T'),'metrics':{'orders':o,'revenue':r,'online':on,'users':u},'revenue':rows},open(a.out,'w',encoding='utf8'),ensure_ascii=False)
