@@ -1,0 +1,117 @@
+{
+  "ReportID": "1788357154",
+  "timezone": "GMT+8",
+  "datetime": "2026-09-02 21:52:34",
+  "data": [
+    {
+      "Province": "上海市",
+      "City": "上海市",
+      "District": "黄浦区",
+      "ChargerStatus": [
+        {
+          "Status": "online",
+          "ChargerNum": 11
+        },
+        {
+          "Status": "offline",
+          "ChargerNum": 0
+        },
+        {
+          "Status": "broken",
+          "ChargerNum": 1
+        }
+      ],
+      "24hChargedOrder": 5,
+      "24hTotalIncome": 174.0,
+      "24hRegisteredUser": 0
+    },
+    {
+      "Province": "上海市",
+      "City": "上海市",
+      "District": "浦东新区",
+      "ChargerStatus": [
+        {
+          "Status": "online",
+          "ChargerNum": 11
+        },
+        {
+          "Status": "offline",
+          "ChargerNum": 0
+        },
+        {
+          "Status": "broken",
+          "ChargerNum": 1
+        }
+      ],
+      "24hChargedOrder": 5,
+      "24hTotalIncome": 311.36,
+      "24hRegisteredUser": 0
+    },
+    {
+      "Province": "上海市",
+      "City": "上海市",
+      "District": "徐汇区",
+      "ChargerStatus": [
+        {
+          "Status": "online",
+          "ChargerNum": 11
+        },
+        {
+          "Status": "offline",
+          "ChargerNum": 0
+        },
+        {
+          "Status": "broken",
+          "ChargerNum": 1
+        }
+      ],
+      "24hChargedOrder": 0,
+      "24hTotalIncome": 0.0,
+      "24hRegisteredUser": 0
+    },
+    {
+      "Province": "上海市",
+      "City": "上海市",
+      "District": "杨浦区",
+      "ChargerStatus": [
+        {
+          "Status": "online",
+          "ChargerNum": 11
+        },
+        {
+          "Status": "offline",
+          "ChargerNum": 0
+        },
+        {
+          "Status": "broken",
+          "ChargerNum": 1
+        }
+      ],
+      "24hChargedOrder": 0,
+      "24hTotalIncome": 0.0,
+      "24hRegisteredUser": 0
+    },
+    {
+      "Province": "上海市",
+      "City": "上海市",
+      "District": "闵行区",
+      "ChargerStatus": [
+        {
+          "Status": "online",
+          "ChargerNum": 11
+        },
+        {
+          "Status": "offline",
+          "ChargerNum": 0
+        },
+        {
+          "Status": "broken",
+          "ChargerNum": 1
+        }
+      ],
+      "24hChargedOrder": 0,
+      "24hTotalIncome": 0.0,
+      "24hRegisteredUser": 0
+    }
+  ]
+}

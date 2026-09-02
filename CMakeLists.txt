@@ -12,3 +12,10 @@ find_package(Qt6 6.2 REQUIRED COMPONENTS Core Widgets Sql Charts)
 add_subdirectory(core)
 add_subdirectory(client_user)
 add_subdirectory(client_admin)
+
+file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+configure_file(
+    ${CMAKE_CURRENT_SOURCE_DIR}/scripts/generate_region_report.py
+    ${CMAKE_BINARY_DIR}/bin/generate_region_report.py
+    COPYONLY
+)
