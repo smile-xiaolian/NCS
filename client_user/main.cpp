@@ -2,6 +2,7 @@
 #include <QWidget>
 #include <QStackedWidget>
 #include <QVBoxLayout>
+#include <QHBoxLayout>
 #include <QLineEdit>
 #include <QPushButton>
 #include <QTableWidget>
@@ -14,6 +15,8 @@
 #include <QDesktopServices>
 #include <QUrl>
 #include <QRegularExpression>
+#include <QComboBox>
+#include <QFile>
 
 #include "core/service/PlatformService.h"
 
@@ -26,6 +29,15 @@ class UserApp : public QWidget
     QLineEdit *nick = new QLineEdit;
     QLineEdit *money = new QLineEdit;
 
+    // UC-U-02 定位区控件
+    QComboBox *regionCombo = new QComboBox;
+    QLineEdit *addressEdit = new QLineEdit;
+    QPushButton *locateBtn = new QPushButton("定位");
+
+    // 当前定位经纬度（默认：人民广场）
+    double currentLat = 31.2304;
+    double currentLng = 121.4737;
+
     QLabel *hint = new QLabel;
     QLabel *info = new QLabel;
     QLabel *charging = new QLabel;
@@ -36,6 +48,12 @@ class UserApp : public QWidget
 
     User u;
     QString otp;
+
+    // 验证码发送后的 60 秒倒计时
+    QTimer otpTimer;
+    int otpCountdown = 0;
+
+    // 充电状态刷新定时器
     QTimer t;
 
     void setup(QTableWidget *w, QStringList h)
@@ -54,7 +72,8 @@ class UserApp : public QWidget
 
     void stations()
     {
-        auto a = PlatformService::stations();
+        // 传递当前经纬度以利用 Haversine 公式计算实际距离并升序排列
+        auto a = PlatformService::stations(currentLat, currentLng);
 
         st->setRowCount(a.size());
 
@@ -141,7 +160,7 @@ public:
         phone->setPlaceholderText("11 位手机号");
         code->setPlaceholderText("6 位验证码");
 
-        auto *get = new QPushButton("获取验证码（模拟）");
+        auto *get = new QPushButton("获取验证码");
         auto *go = new QPushButton("登录 / 自动注册");
 
         l->addWidget(phone);
@@ -153,11 +172,25 @@ public:
 
         p->addWidget(login);
 
-        // 首页
+        // 首页 (实现 UC-U-02 附近充电站查询与定位区)
         auto home = new QWidget;
         auto h = new QVBoxLayout(home);
 
-        h->addWidget(new QLabel("附近充电站（默认定位：人民广场）"));
+        // 顶部定位区布局：区域下拉框 + 地址输入框 + 定位按钮
+        auto locateLayout = new QHBoxLayout();
+        regionCombo->addItem("上海·人民广场", QVariant::fromValue(QPointF(31.2304, 121.4737)));
+        regionCombo->addItem("上海·陆家嘴", QVariant::fromValue(QPointF(31.2393, 121.5000)));
+        regionCombo->addItem("北京·天安门", QVariant::fromValue(QPointF(39.9042, 116.4074)));
+        regionCombo->addItem("深圳·福田中心", QVariant::fromValue(QPointF(22.5431, 114.0579)));
+
+        addressEdit->setPlaceholderText("请输入详细地址");
+
+        locateLayout->addWidget(regionCombo, 2);
+        locateLayout->addWidget(addressEdit, 3);
+        locateLayout->addWidget(locateBtn, 1);
+
+        h->addLayout(locateLayout);
+        h->addWidget(new QLabel("附近充电站列表："));
 
         setup(st, {
             "站点",
@@ -214,7 +247,7 @@ public:
 
         money->setPlaceholderText("充值金额 0.01 - 10000");
 
-        auto *pay = new QPushButton("模拟充值");
+        auto *pay = new QPushButton("充值");
         auto *start = new QPushButton("开始 / 结束充电");
         auto *mb = new QPushButton("返回首页");
 
@@ -248,15 +281,32 @@ public:
 
         p->addWidget(hist);
 
+        // 点击“定位”按钮触发逻辑 (UC-U-02)
+        connect(locateBtn, &QPushButton::clicked, this, [this]
+        {
+            // 目前由于尚未配置真实腾讯地图 Key 且满足需求退化逻辑：
+            // 直接采用区域下拉框对应的预置经纬度作为当前位置。
+            QPointF coords = regionCombo->currentData().toPointF();
+            currentLat = coords.x();
+            currentLng = coords.y();
+
+            QString customAddr = addressEdit->text().trimmed();
+            if (!customAddr.isEmpty())
+            {
+                // 若用户输入了地址，模拟提示由于未配置 Key 已退化使用预置坐标
+                msg(QString("提示：未配置腾讯地图 Key 或网络不可用，已使用“%1”的预置坐标进行定位。")
+                    .arg(regionCombo->currentText()));
+            }
+
+            // 重新刷新电站列表计算距离
+            stations();
+        });
+
         // 获取验证码
-        // UC-U-01 / BR-01：
-        // 只有输入合法的 11 位手机号后，才允许获取验证码。
-        // 手机号格式校验在点击“获取验证码”时触发，不在输入过程中打扰用户。
-        connect(get, &QPushButton::clicked, this, [this]
+        connect(get, &QPushButton::clicked, this, [this, get]
         {
             const QString number = phone->text().trimmed();
 
-            // 手机号必须为 11 位数字，且以 1 开头。
             if (number.size() != 11 ||
                 !number.startsWith('1') ||
                 number.contains(QRegularExpression("[^0-9]")))
@@ -270,6 +320,28 @@ public:
             );
 
             hint->setText("模拟验证码：" + otp + "（60 秒有效）");
+
+            otpCountdown = 60;
+            get->setEnabled(false);
+            get->setText(QString("%1 秒后重新获取").arg(otpCountdown));
+
+            otpTimer.start(1000);
+        });
+
+        // 验证码 60 秒倒计时
+        connect(&otpTimer, &QTimer::timeout, this, [this, get]
+        {
+            --otpCountdown;
+
+            if (otpCountdown > 0)
+            {
+                get->setText(QString("%1 秒后重新获取").arg(otpCountdown));
+                return;
+            }
+
+            otpTimer.stop();
+            get->setEnabled(true);
+            get->setText("获取验证码");
         });
 
         // 登录 / 自动注册
@@ -549,11 +621,18 @@ int main(int c, char **v)
 {
     QApplication a(c, v);
 
+    // 从外部文件加载样式表
+    QFile styleFile("style.qss");
+    if (styleFile.open(QFile::ReadOnly | QFile::Text))
+    {
+        a.setStyleSheet(styleFile.readAll());
+    }
+
     QString e;
 
     if (!PlatformService::initialize(&e))
     {
-        QMessageBox::critical(nullptr, "NCS", e);
+        QMessageBox::critical(nullptr, "NCS错误", e);
         return 1;
     }
 
