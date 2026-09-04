@@ -1,1 +1,1 @@
-{"name":"ncs-dashboard","private":true,"scripts":{"dev":"vite --host 0.0.0.0","build":"vite"},"dependencies":{"echarts":"^5.5.1","vue":"^3.4.0","vite":"^5.4.0"},"devDependencies":{}}
+{"name":"ncs-dashboard","private":true,"scripts":{"dev":"vite --host 0.0.0.0","build":"vite build"},"dependencies":{"echarts":"^5.5.1","vue":"^3.4.0","vite":"^5.4.0"},"devDependencies":{}}

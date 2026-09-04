@@ -1,1 +1,183 @@
-{"generated_at":"首次启动后请执行 export_dashboard.py","metrics":{"orders":0,"revenue":0,"online":0,"users":0},"revenue":[]}
+{
+  "ReportID": "1756962000",
+  "timezone": "GMT+8",
+  "datetime": "2026-09-04 15:00:00",
+  "data": [
+    {
+      "Province": "广东省",
+      "City": "广州市",
+      "District": "天河区",
+      "ChargerStatus": [
+        {
+          "Status": "online",
+          "ChargerNum": 18
+        },
+        {
+          "Status": "offline",
+          "ChargerNum": 7
+        },
+        {
+          "Status": "broken",
+          "ChargerNum": 2
+        }
+      ],
+      "24hChargedOrder": 126,
+      "24hTotalIncome": 14820.5,
+      "24hRegisteredUser": 38
+    },
+    {
+      "Province": "广东省",
+      "City": "广州市",
+      "District": "白云区",
+      "ChargerStatus": [
+        {
+          "Status": "online",
+          "ChargerNum": 12
+        },
+        {
+          "Status": "offline",
+          "ChargerNum": 4
+        },
+        {
+          "Status": "broken",
+          "ChargerNum": 1
+        }
+      ],
+      "24hChargedOrder": 74,
+      "24hTotalIncome": 6910.0,
+      "24hRegisteredUser": 21
+    },
+    {
+      "Province": "广东省",
+      "City": "深圳市",
+      "District": "南山区",
+      "ChargerStatus": [
+        {
+          "Status": "online",
+          "ChargerNum": 16
+        },
+        {
+          "Status": "offline",
+          "ChargerNum": 9
+        },
+        {
+          "Status": "broken",
+          "ChargerNum": 1
+        }
+      ],
+      "24hChargedOrder": 158,
+      "24hTotalIncome": 19640.8,
+      "24hRegisteredUser": 44
+    },
+    {
+      "Province": "上海市",
+      "City": "上海市",
+      "District": "黄浦区",
+      "ChargerStatus": [
+        {
+          "Status": "online",
+          "ChargerNum": 11
+        },
+        {
+          "Status": "offline",
+          "ChargerNum": 3
+        },
+        {
+          "Status": "broken",
+          "ChargerNum": 1
+        }
+      ],
+      "24hChargedOrder": 61,
+      "24hTotalIncome": 7420.0,
+      "24hRegisteredUser": 12
+    },
+    {
+      "Province": "上海市",
+      "City": "上海市",
+      "District": "浦东新区",
+      "ChargerStatus": [
+        {
+          "Status": "online",
+          "ChargerNum": 14
+        },
+        {
+          "Status": "offline",
+          "ChargerNum": 6
+        },
+        {
+          "Status": "broken",
+          "ChargerNum": 2
+        }
+      ],
+      "24hChargedOrder": 97,
+      "24hTotalIncome": 11208.36,
+      "24hRegisteredUser": 19
+    },
+    {
+      "Province": "上海市",
+      "City": "上海市",
+      "District": "徐汇区",
+      "ChargerStatus": [
+        {
+          "Status": "online",
+          "ChargerNum": 9
+        },
+        {
+          "Status": "offline",
+          "ChargerNum": 2
+        },
+        {
+          "Status": "broken",
+          "ChargerNum": 1
+        }
+      ],
+      "24hChargedOrder": 33,
+      "24hTotalIncome": 2814.6,
+      "24hRegisteredUser": 7
+    },
+    {
+      "Province": "浙江省",
+      "City": "杭州市",
+      "District": "西湖区",
+      "ChargerStatus": [
+        {
+          "Status": "online",
+          "ChargerNum": 10
+        },
+        {
+          "Status": "offline",
+          "ChargerNum": 5
+        },
+        {
+          "Status": "broken",
+          "ChargerNum": 1
+        }
+      ],
+      "24hChargedOrder": 82,
+      "24hTotalIncome": 9055.2,
+      "24hRegisteredUser": 16
+    },
+    {
+      "Province": "北京市",
+      "City": "北京市",
+      "District": "海淀区",
+      "ChargerStatus": [
+        {
+          "Status": "online",
+          "ChargerNum": 13
+        },
+        {
+          "Status": "offline",
+          "ChargerNum": 8
+        },
+        {
+          "Status": "broken",
+          "ChargerNum": 2
+        }
+      ],
+      "24hChargedOrder": 119,
+      "24hTotalIncome": 15330.0,
+      "24hRegisteredUser": 29
+    }
+  ]
+}

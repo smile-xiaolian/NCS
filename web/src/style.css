@@ -1,1 +1,223 @@
-*{box-sizing:border-box}body{margin:0;background:#06152b;color:#d8f3ff;font-family:Arial,"Microsoft YaHei"}main{max-width:1600px;margin:auto;padding:26px}header{text-align:center;border-bottom:1px solid #158bc4}h1{letter-spacing:3px;color:#55dcff}.cards{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;margin:28px 0}.cards article,section{background:#0b2747;border:1px solid #125f93;padding:22px}.cards b{display:block;font-size:30px;color:#61e6b8;margin-top:12px}#chart{height:550px}@media(max-width:800px){.cards{grid-template-columns:repeat(2,1fr)}}
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #02080f;
+  color: #d8f3ff;
+  font-family: "Microsoft YaHei", "PingFang SC", Arial, sans-serif;
+}
+
+.stage {
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background:
+    radial-gradient(circle at top, rgba(21, 139, 196, 0.16), transparent 42%),
+    #02080f;
+}
+
+.screen {
+  width: 1920px;
+  height: 1080px;
+  flex-shrink: 0;
+  transform-origin: center center;
+  padding: 18px 22px 20px;
+  display: grid;
+  grid-template-rows: 86px 28px 1fr;
+  gap: 10px;
+  background:
+    linear-gradient(180deg, rgba(8, 32, 58, 0.92), rgba(4, 14, 28, 0.96)),
+    #06152b;
+  border: 1px solid rgba(85, 220, 255, 0.18);
+  box-shadow: inset 0 0 80px rgba(21, 139, 196, 0.12);
+}
+
+.topbar {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  border-bottom: 1px solid rgba(85, 220, 255, 0.35);
+}
+
+.topbar::before,
+.topbar::after {
+  content: "";
+  position: absolute;
+  bottom: -1px;
+  width: 18%;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, #55dcff, transparent);
+}
+
+.topbar::before { left: 0; }
+.topbar::after { right: 0; }
+
+.topbar h1 {
+  margin: 0;
+  font-size: 34px;
+  letter-spacing: 8px;
+  color: #e8fbff;
+  text-shadow: 0 0 18px rgba(85, 220, 255, 0.35);
+}
+
+.topbar-side {
+  display: flex;
+  gap: 16px;
+  color: #7fb6cc;
+  font-size: 14px;
+}
+
+.topbar-side.right {
+  justify-content: flex-end;
+}
+
+.topbar time {
+  font-size: 22px;
+  color: #55dcff;
+  letter-spacing: 1px;
+}
+
+.meta {
+  margin: 0;
+  display: flex;
+  gap: 22px;
+  color: #7fb6cc;
+  font-size: 13px;
+}
+
+.meta .warn {
+  color: #ffb347;
+}
+
+.body {
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 430px 1fr 470px;
+  gap: 14px;
+}
+
+.col {
+  min-height: 0;
+  display: grid;
+  gap: 14px;
+}
+
+.col-left { grid-template-rows: 1fr 1.15fr; }
+.col-center { grid-template-rows: 148px 1fr; }
+.col-right { grid-template-rows: 1.15fr 0.9fr 1fr; }
+
+.panel,
+.metrics article {
+  position: relative;
+  min-height: 0;
+  background: linear-gradient(180deg, rgba(11, 39, 71, 0.92), rgba(7, 24, 46, 0.92));
+  border: 1px solid rgba(21, 139, 196, 0.45);
+  box-shadow: inset 0 0 24px rgba(21, 139, 196, 0.08);
+}
+
+.panel::before,
+.panel::after,
+.metrics article::before,
+.metrics article::after {
+  content: "";
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  border: 1px solid #55dcff;
+}
+
+.panel::before,
+.metrics article::before {
+  top: -1px;
+  left: -1px;
+  border-right: 0;
+  border-bottom: 0;
+}
+
+.panel::after,
+.metrics article::after {
+  right: -1px;
+  bottom: -1px;
+  border-left: 0;
+  border-top: 0;
+}
+
+.panel {
+  display: grid;
+  grid-template-rows: 42px 1fr;
+  padding: 8px 10px 10px;
+}
+
+.panel h2 {
+  margin: 0;
+  padding: 8px 10px 0 14px;
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  color: #9eefff;
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.panel h2::before {
+  content: "";
+  width: 4px;
+  height: 14px;
+  background: #55dcff;
+  box-shadow: 0 0 8px #55dcff;
+}
+
+.panel h2 i {
+  font-style: normal;
+  font-size: 11px;
+  color: #6f98ab;
+  font-weight: 400;
+}
+
+.chart {
+  min-height: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.metrics {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+
+.metrics article {
+  padding: 18px 16px 14px;
+}
+
+.metrics small {
+  color: #7fb6cc;
+  letter-spacing: 1px;
+}
+
+.metrics b {
+  display: block;
+  margin: 10px 0 8px;
+  font-size: 30px;
+  color: #61e6b8;
+  line-height: 1.1;
+}
+
+.metrics em {
+  font-style: normal;
+  color: #6f98ab;
+  font-size: 12px;
+}
