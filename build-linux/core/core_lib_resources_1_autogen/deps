@@ -1,0 +1,4 @@
+core_lib_resources_1_autogen/timestamp: \
+	/home/lan/projects/NCS/core/CMakeLists.txt \
+	/usr/lib/x86_64-linux-gnu/cmake/Qt6Core/Qt6CoreConfigureFileTemplate.in \
+	/usr/bin/cmake
