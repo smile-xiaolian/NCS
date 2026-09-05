@@ -1,85 +1,113 @@
 #!/usr/bin/env python3
-"""NCS 负荷预测：固定随机种子、RandomForestRegressor、SQLite 回写。"""
+"""NCS 负荷预测入口。支持 --train / --predict / --evaluate，数据集可为空。
+
+示例：
+  python ml/predict.py --predict
+  python ml/predict.py --db path/to/charge_platform.db --export-dataset --train --evaluate --predict
+"""
+
+from __future__ import annotations
+
 import argparse
-import os
-import sqlite3
-from datetime import datetime, timedelta
+import sys
+from pathlib import Path
 
-import joblib
-import numpy as np
-from sklearn.ensemble import RandomForestRegressor
-from sklearn.metrics import mean_absolute_error, mean_squared_error
+ROOT = Path(__file__).resolve().parent
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 
-RANDOM_SEED = 42
-MODEL_PATH = os.path.join(os.path.dirname(__file__), "models", "load_rf.pkl")
+from features import load_holidays  # noqa: E402
+from modeler import empty_metrics  # noqa: E402
+from pipeline import (  # noqa: E402
+    DEFAULT_DATASET,
+    DEFAULT_HOLIDAYS,
+    DEFAULT_MODEL,
+    DEFAULT_WEB_OUT,
+    empty_prediction,
+    export_dataset,
+    forecast,
+    resolve_rows,
+    run_evaluate,
+    run_train,
+    write_db,
+    write_prediction,
+)
 
-def load_rows(conn):
-    sql = """SELECT c.station_id, o.end_time, o.energy
-             FROM charging_order o JOIN charger c ON c.id=o.charger_id
-             WHERE o.status=2 AND o.end_time IS NOT NULL ORDER BY o.end_time"""
-    return conn.execute(sql).fetchall()
 
-def samples(rows):
-    buckets = {}
-    for station, text, energy in rows:
-        dt = datetime.strptime(text, "%Y-%m-%d %H:%M:%S").replace(minute=0, second=0)
-        buckets[(station, dt)] = buckets.get((station, dt), 0.0) + float(energy or 0)
-    result = []
-    for (station, dt), value in buckets.items():
-        def lag(hours): return buckets.get((station, dt - timedelta(hours=hours)), 0.0)
-        result.append(([station, dt.hour, dt.weekday(), int(dt.weekday() >= 5), lag(1), lag(24), lag(168), (lag(1)+lag(24)+lag(168))/3], value))
-    return sorted(result, key=lambda x: x[0][0])
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--train", action="store_true", help="训练 RandomForest 并保存 ml/models/load_rf.pkl")
+    parser.add_argument("--predict", action="store_true", help="预测未来 24 小时并写入大屏 JSON")
+    parser.add_argument("--evaluate", action="store_true", help="输出 MAE/RMSE/MAPE 并与上周同刻基线对比")
+    parser.add_argument("--export-dataset", action="store_true", help="从数据库导出 hourly_load.csv")
+    parser.add_argument("--db", default=None, help="可选的 charge_platform.db 路径")
+    parser.add_argument("--dataset", default=str(DEFAULT_DATASET), help="小时负荷 CSV，默认 ml/dataset/hourly_load.csv")
+    parser.add_argument("--holidays", default=str(DEFAULT_HOLIDAYS), help="节假日 CSV")
+    parser.add_argument("--model", default=str(DEFAULT_MODEL), help="模型输出路径")
+    parser.add_argument("--web-out", default=str(DEFAULT_WEB_OUT), help="大屏读取的 prediction.json")
+    return parser.parse_args()
 
-def train(data):
-    if len(data) < 10:
-        raise RuntimeError("历史订单不足，至少需要 10 条已完成订单")
-    x = np.array([item[0] for item in data]); y = np.array([item[1] for item in data])
-    model = RandomForestRegressor(n_estimators=180, max_depth=12, random_state=RANDOM_SEED, n_jobs=-1)
-    model.fit(x, y)
-    os.makedirs(os.path.dirname(MODEL_PATH), exist_ok=True)
-    joblib.dump(model, MODEL_PATH)
-    return model, x, y
 
-def evaluate(model, x, y):
-    split = max(1, int(len(x) * .8))
-    actual = y[split:]; predicted = model.predict(x[split:])
-    if len(actual) == 0: actual, predicted = y, model.predict(x)
-    mae = mean_absolute_error(actual, predicted)
-    rmse = mean_squared_error(actual, predicted) ** .5
-    mape = np.mean(np.abs((actual-predicted) / np.maximum(actual, .01))) * 100
-    baseline = x[split:, 5] if len(x[split:]) else x[:, 5]
-    base_mae = mean_absolute_error(actual, baseline)
-    print(f"MAE={mae:.3f}, RMSE={rmse:.3f}, MAPE={mape:.2f}%, 上周同刻基线 MAE={base_mae:.3f}")
+def main() -> int:
+    args = parse_args()
+    if not (args.train or args.predict or args.evaluate or args.export_dataset):
+        raise SystemExit("请至少指定 --train、--predict、--evaluate 或 --export-dataset")
 
-def predict(conn, model, data):
-    station_ids = [row[0] for row in conn.execute("SELECT id FROM station")]
-    latest = {(features[0],): features for features, _ in data}
-    now = datetime.now().replace(minute=0, second=0, microsecond=0)
-    conn.execute("DELETE FROM load_prediction")
-    for station in station_ids:
-        base = latest.get((station,), [station, now.hour, now.weekday(), 0, 0, 0, 0, 0])
-        for offset in range(1, 25):
-            target = now + timedelta(hours=offset)
-            features = [station, target.hour, target.weekday(), int(target.weekday() >= 5), base[4], base[5], base[6], base[7]]
-            energy = max(0.0, float(model.predict(np.array([features]))[0]))
-            peak = int(target.hour in (8, 9, 10, 17, 18, 19, 20))
-            idle = max(0, 8 - int(round(energy / 15)))
-            conn.execute("INSERT INTO load_prediction(station_id,target_time,predicted_energy,predicted_idle,is_peak) VALUES(?,?,?,?,?)", (station, target.strftime("%Y-%m-%d %H:%M:%S"), round(energy, 2), idle, peak))
-    conn.commit()
-    print("已回写未来 24 小时预测结果。")
+    dataset = Path(args.dataset)
+    holidays = load_holidays(Path(args.holidays))
+    model_path = Path(args.model)
+    web_out = Path(args.web_out)
 
-def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--db", required=True, help="charge_platform.db 的绝对路径")
-    parser.add_argument("--train", action="store_true")
-    parser.add_argument("--predict", action="store_true")
-    parser.add_argument("--evaluate", action="store_true")
-    args = parser.parse_args()
-    if not (args.train or args.predict or args.evaluate): parser.error("请至少指定 --train、--predict 或 --evaluate")
-    conn = sqlite3.connect(args.db); data = samples(load_rows(conn))
-    if args.train or args.evaluate or not os.path.exists(MODEL_PATH): model, x, y = train(data)
-    else: model = joblib.load(MODEL_PATH); x = y = None
-    if args.evaluate: evaluate(model, x, y)
-    if args.predict: predict(conn, model, data)
+    if args.export_dataset:
+        if not args.db:
+            raise SystemExit("--export-dataset 需要同时提供 --db")
+        export_dataset(args.db, dataset)
 
-if __name__ == "__main__": main()
+    rows, names, chargers = resolve_rows(dataset, args.db)
+    model = None
+    metrics = empty_metrics(len(rows))
+
+    if not rows:
+        payload = empty_prediction(
+            "训练集为空，已预留 hourly_load.csv 格式。写入小时负荷或从数据库导出后再训练/预测。",
+            metrics,
+        )
+        if args.predict:
+            write_prediction(web_out, payload)
+        else:
+            print(payload["message"])
+        return 0
+
+    if args.train or (args.evaluate and not model_path.exists()) or (args.predict and not model_path.exists()):
+        try:
+            model, _, _ = run_train(rows, holidays, model_path)
+        except RuntimeError as exc:
+            print(exc)
+            if args.predict:
+                write_prediction(web_out, empty_prediction(str(exc), metrics))
+            return 0
+
+    if model is None and model_path.exists():
+        from modeler import load_model
+        model = load_model(model_path)
+
+    if args.evaluate:
+        if model is None:
+            print("没有可用模型，无法评估")
+        else:
+            metrics = run_evaluate(model, rows, holidays)
+
+    if args.predict:
+        if model is None:
+            payload = empty_prediction("没有可用模型，已跳过预测。", metrics)
+        else:
+            payload = forecast(model, rows, holidays, names, chargers)
+            payload["metrics"] = metrics
+        write_prediction(web_out, payload)
+        if args.db:
+            write_db(args.db, payload)
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

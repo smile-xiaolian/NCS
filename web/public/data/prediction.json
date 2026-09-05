@@ -1,0 +1,19 @@
+{
+  "schema": "ncs.load_prediction.v1",
+  "generated_at": "2026-09-05 19:00:51",
+  "timezone": "GMT+8",
+  "status": "empty",
+  "message": "训练集为空，已预留 hourly_load.csv 格式。写入小时负荷或从数据库导出后再训练/预测。",
+  "metrics": {
+    "mae": null,
+    "rmse": null,
+    "mape": null,
+    "baseline_mae": null,
+    "beats_baseline": null,
+    "sample_count": 0
+  },
+  "horizon_hours": 24,
+  "series": [],
+  "by_station": [],
+  "history": []
+}

@@ -268,19 +268,26 @@ export function ringOption(types) {
   };
 }
 
-export function predictOption(points) {
+export function predictOption(prediction) {
+  const points = Array.isArray(prediction) ? prediction : prediction?.points || [];
+  const history = Array.isArray(prediction) ? [] : prediction?.history || [];
+  const empty = points.length === 0;
+  const legend = ['预测负荷'];
+  if (history.length) legend.unshift('历史实际');
   return {
     tooltip: {
       ...tooltipBase(),
       trigger: 'axis',
       formatter: (rows) => {
-        const point = rows?.[0];
-        if (!point) return '';
-        const item = points[point.dataIndex];
-        return `${point.axisValue}<br/>预测订单 ${point.value}${item?.peak ? '<br/>高峰时段' : ''}`;
+        if (!rows?.length) return '';
+        const item = points[rows[0].dataIndex];
+        const lines = rows.map((row) => `${row.seriesName} ${row.value} 度`);
+        if (item?.idle) lines.push(`预测空闲 ${item.idle} 桩`);
+        if (item?.peak) lines.push('高峰时段');
+        return `${rows[0].axisValue}<br/>${lines.join('<br/>')}`;
       },
     },
-    legend: legendBase({ top: 0, right: 8, data: ['预测负荷'] }),
+    legend: legendBase({ top: 0, right: 8, data: legend }),
     grid: { left: 46, right: 18, top: 32, bottom: 28 },
     xAxis: {
       type: 'category',
@@ -290,13 +297,39 @@ export function predictOption(points) {
     },
     yAxis: {
       type: 'value',
-      name: '单',
+      name: '度',
       nameTextStyle: { color: textColor },
       axisLine,
       splitLine,
       axisLabel: { color: textColor },
     },
+    graphic: empty
+      ? [
+          {
+            type: 'text',
+            left: 'center',
+            top: 'middle',
+            style: {
+              text: prediction?.message || '暂无预测数据',
+              fill: '#6f98ab',
+              fontSize: 13,
+              width: 360,
+              overflow: 'break',
+            },
+          },
+        ]
+      : [],
     series: [
+      history.length
+        ? {
+            name: '历史实际',
+            type: 'line',
+            smooth: true,
+            data: history.map((item) => item.load),
+            lineStyle: { width: 2, color: '#55dcff' },
+            itemStyle: { color: '#55dcff' },
+          }
+        : null,
       {
         name: '预测负荷',
         type: 'line',
@@ -307,12 +340,12 @@ export function predictOption(points) {
         areaStyle: { color: 'rgba(97, 230, 184, 0.16)' },
         markPoint: {
           data: points
-            .map((item, index) => (item.peak ? { coord: [item.label, item.load], value: '峰', itemStyle: { color: '#ff6b6b' } } : null))
+            .map((item) => (item.peak ? { coord: [item.label, item.load], value: '峰', itemStyle: { color: '#ff6b6b' } } : null))
             .filter(Boolean)
             .filter((_item, index) => index % 2 === 0),
           label: { color: '#fff', fontSize: 10 },
         },
       },
-    ],
+    ].filter(Boolean),
   };
 }

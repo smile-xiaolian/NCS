@@ -2,6 +2,7 @@ import { nextTick, onBeforeUnmount, onMounted, ref } from 'vue';
 import * as echarts from 'echarts';
 import {
   DATA_URL,
+  PRED_URL,
   REFRESH_MS,
   aggregate,
   formatClock,
@@ -64,12 +65,22 @@ export default {
       charts[5]?.setOption(predictOption(data.prediction), true);
     }
 
+    async function fetchJson(url) {
+      const response = await fetch(`${url}?t=${Date.now()}`);
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      return response.json();
+    }
+
     async function load() {
       try {
-        const response = await fetch(`${DATA_URL}?t=${Date.now()}`);
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        const report = await response.json();
-        view.value = aggregate(report);
+        const report = await fetchJson(DATA_URL);
+        let prediction = null;
+        try {
+          prediction = await fetchJson(PRED_URL);
+        } catch {
+          prediction = null;
+        }
+        view.value = aggregate(report, prediction);
         stamp.value = view.value.datetime || '未知时间';
         loadError.value = '';
         renderCharts();
@@ -210,7 +221,11 @@ export default {
             <section class="panel">
               <h2>
                 未来 24 小时负荷预测
-                <i>由近 24h 订单按峰谷外推，高峰标红</i>
+                <i v-if="view.prediction.source === 'ml'">
+                  模型输出{{ view.prediction.metrics && view.prediction.metrics.mae != null ? '，MAE ' + view.prediction.metrics.mae : '' }}，高峰标红
+                </i>
+                <i v-else-if="view.prediction.source === 'empty'">{{ view.prediction.message }}</i>
+                <i v-else>由近 24h 订单按峰谷外推，高峰标红</i>
               </h2>
               <div class="chart" ref="predEl"></div>
             </section>

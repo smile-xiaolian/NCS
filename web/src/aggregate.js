@@ -1,6 +1,7 @@
 /** 将 webmodel.json 的分区上报汇总为大屏视图模型。 */
 
 export const DATA_URL = '/data/dashboard.json';
+export const PRED_URL = '/data/prediction.json';
 export const REFRESH_MS = 60 * 60 * 1000;
 const HISTORY_KEY = 'ncs-dashboard-history';
 const HISTORY_LIMIT = 24 * 40;
@@ -197,7 +198,14 @@ function buildHeatmap(view, history) {
   };
 }
 
-function buildPrediction(view) {
+function hourLabel(text) {
+  const stamp = parseStamp(text);
+  if (stamp) return `${pad(stamp.getHours())}:00`;
+  const raw = String(text || '');
+  return raw.length >= 16 ? raw.slice(11, 16) : raw;
+}
+
+function buildPredictionFallback(view) {
   const start = parseStamp(view.datetime) || new Date();
   const raw = [];
   for (let offset = 1; offset <= 24; offset += 1) {
@@ -206,14 +214,50 @@ function buildPrediction(view) {
     raw.push({ time, weight, peak: [8, 9, 10, 17, 18, 19, 20].includes(time.getHours()) });
   }
   const weightSum = raw.reduce((sum, item) => sum + item.weight, 0) || 1;
-  return raw.map((item) => ({
-    label: `${pad(item.time.getHours())}:00`,
-    load: Math.round((view.metrics.orders * item.weight) / weightSum * 10) / 10,
-    peak: item.peak,
-  }));
+  return {
+    source: 'fallback',
+    message: '由近 24h 订单按峰谷外推，高峰标红',
+    metrics: null,
+    history: [],
+    points: raw.map((item) => ({
+      label: `${pad(item.time.getHours())}:00`,
+      load: Math.round((view.metrics.orders * item.weight) / weightSum * 10) / 10,
+      peak: item.peak,
+      idle: 0,
+    })),
+  };
 }
 
-export function aggregate(report) {
+export function buildPredictionFromMl(payload) {
+  const series = Array.isArray(payload?.series) ? payload.series : [];
+  if (!payload || payload.status === 'empty' || series.length === 0) {
+    return {
+      source: 'empty',
+      message: payload?.message || '暂无预测数据，请写入 hourly_load.csv 后运行 ml/predict.py',
+      metrics: payload?.metrics || null,
+      history: [],
+      points: [],
+    };
+  }
+  return {
+    source: 'ml',
+    message: payload.message || '模型输出，高峰标红',
+    metrics: payload.metrics || null,
+    generatedAt: payload.generated_at || '',
+    history: (payload.history || []).map((item) => ({
+      label: hourLabel(item.target_time),
+      load: num(item.actual_energy),
+    })),
+    points: series.map((item) => ({
+      label: hourLabel(item.target_time),
+      load: num(item.predicted_energy),
+      peak: Boolean(Number(item.is_peak)),
+      idle: num(item.predicted_idle),
+    })),
+  };
+}
+
+export function aggregate(report, predictionPayload) {
   const rows = Array.isArray(report?.data) ? report.data : [];
   const status = statusBag();
   const types = { fast: 0, slow: 0 };
@@ -272,6 +316,8 @@ export function aggregate(report) {
   const history = rememberSnapshot(view);
   view.trend = buildTrend(view, history);
   view.heatmap = buildHeatmap(view, history);
-  view.prediction = buildPrediction(view);
+  view.prediction = predictionPayload
+    ? buildPredictionFromMl(predictionPayload)
+    : buildPredictionFallback(view);
   return view;
 }

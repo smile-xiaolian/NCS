@@ -21,8 +21,22 @@ cmake --build build -j
 
 ## 预测与大屏
 
+完整用法见 [ml/使用说明.md](ml/使用说明.md)。
+
+小时负荷训练集在 `ml/dataset/hourly_load.csv`（可先只保留表头）。有数据库后可导出：
+
 ```bash
-python3 ml/predict.py --db ~/.local/share/NCS/charge_platform.db --predict --evaluate
-python3 web/export_dashboard.py --db ~/.local/share/NCS/charge_platform.db
+python3 ml/predict.py --db ~/.local/share/NCS/charge_platform.db --export-dataset --train --evaluate --predict
+```
+
+无数据库时写入 CSV 后执行：
+
+```bash
+python3 ml/predict.py --train --evaluate --predict
+```
+
+预测结果写入 `web/public/data/prediction.json`，大屏右侧「未来 24 小时负荷预测」读取该文件。运营 JSON 仍放到 `web/public/data/dashboard.json`。
+
+```bash
 cd web && npm install && npm run dev
 ```

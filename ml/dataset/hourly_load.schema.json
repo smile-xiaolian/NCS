@@ -1,0 +1,65 @@
+{
+  "schema": "ncs.hourly_load.v1",
+  "description": "按 (电站, 日期, 小时) 聚合的小时充电量，供 UC-M 训练与预测。当前可为空，仅保留表头。",
+  "file": "hourly_load.csv",
+  "required_columns": [
+    {
+      "name": "station_id",
+      "type": "int",
+      "description": "电站 ID，与 station.id / load_prediction.station_id 一致"
+    },
+    {
+      "name": "station_name",
+      "type": "string",
+      "description": "电站名称，可空；导出给大屏时用于标注"
+    },
+    {
+      "name": "datetime",
+      "type": "string",
+      "format": "yyyy-MM-dd HH:mm:ss",
+      "description": "该小时的起始本地时间，分钟与秒应为 00:00，例如 2026-09-04 15:00:00"
+    },
+    {
+      "name": "energy",
+      "type": "float",
+      "unit": "kWh",
+      "description": "该小时内已完成订单的充电量合计，作为回归标签"
+    }
+  ],
+  "optional_columns": [
+    {
+      "name": "temp_c",
+      "type": "float",
+      "description": "气温。缺省时由脚本按日期小时确定性模拟"
+    },
+    {
+      "name": "is_rain",
+      "type": "int",
+      "description": "是否降水，0/1。缺省时由脚本模拟"
+    }
+  ],
+  "engineered_features": [
+    "hour",
+    "weekday",
+    "is_weekend",
+    "is_holiday",
+    "lag_1h",
+    "lag_24h",
+    "lag_168h",
+    "rolling_mean",
+    "station_code",
+    "temp_c",
+    "is_rain"
+  ],
+  "example_row": {
+    "station_id": 1,
+    "station_name": "天河体育中心站",
+    "datetime": "2026-09-04 18:00:00",
+    "energy": 42.5
+  },
+  "notes": [
+    "同一电站同一小时只保留一行；缺测小时可省略，脚本会在导出数据库时按 0 补齐。",
+    "节假日见 holidays.csv，可按年追加。",
+    "有 SQLite 时可用 python ml/predict.py --db <db> --export-dataset 生成此文件。"
+  ]
+}
