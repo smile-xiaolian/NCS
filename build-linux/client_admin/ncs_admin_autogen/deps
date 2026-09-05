@@ -1,4 +1,17 @@
 ncs_admin_autogen/timestamp: \
-	/home/bit/projects/client_admin/CMakeLists.txt \
-	/home/bit/projects/client_admin/main.cpp \
+	/home/lan/projects/NCS/client_admin/CMakeLists.txt \
+	/home/lan/projects/NCS/client_admin/main.cpp \
+	/home/lan/projects/NCS/client_admin/ui/AdminMainWindow.cpp \
+	/home/lan/projects/NCS/client_admin/ui/AdminMainWindow.h \
+	/home/lan/projects/NCS/client_admin/ui/ChargerManagePage.cpp \
+	/home/lan/projects/NCS/client_admin/ui/ChargerManagePage.h \
+	/home/lan/projects/NCS/client_admin/ui/ChargerStatusPage.cpp \
+	/home/lan/projects/NCS/client_admin/ui/ChargerStatusPage.h \
+	/home/lan/projects/NCS/client_admin/ui/RevenuePage.cpp \
+	/home/lan/projects/NCS/client_admin/ui/RevenuePage.h \
+	/home/lan/projects/NCS/client_admin/ui/StationManagePage.cpp \
+	/home/lan/projects/NCS/client_admin/ui/StationManagePage.h \
+	/home/lan/projects/NCS/client_admin/ui/UserManagePage.cpp \
+	/home/lan/projects/NCS/client_admin/ui/UserManagePage.h \
+	/usr/lib/x86_64-linux-gnu/cmake/Qt6Core/Qt6CoreConfigureFileTemplate.in \
 	/usr/bin/cmake
