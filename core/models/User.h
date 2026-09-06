@@ -9,6 +9,7 @@ struct User {
     QString nickname;
     QString avatar;
     double balance = 0.0;
+    double debt = 0.0;       // 新增：欠费金额
     int status = 1;  // 1=正常, 0=冻结
     QString createdAt;
 };

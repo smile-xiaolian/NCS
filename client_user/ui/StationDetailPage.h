@@ -1,24 +1,36 @@
-#pragma once
+#ifndef STATIONDETAILPAGE_H
+#define STATIONDETAILPAGE_H
+
 #include <QWidget>
-#include <QTableWidget>
 #include <QLabel>
+#include <QTableWidget>
 #include <QPushButton>
 
-class StationDetailPage : public QWidget {
+class StationDetailPage : public QWidget
+{
     Q_OBJECT
 public:
-    StationDetailPage(QWidget *parent = nullptr);
-    void loadStation(int stationId);
+    explicit StationDetailPage(QWidget *parent = nullptr);
+    void loadStation(int stationId, int userId);
 
 signals:
-    void reserveSuccess();
-    void requestBackHome();
+    void backToHomeRequested();
+    void reservationSuccess();
+    void navigateRequested(double lat, double lng, const QString &stationName);
 
 private:
-    QLabel *stationTitleLabel;
+    int currentStationId = 0;
+    int currentUserId = 0;
+
+    QLabel *titleLabel;
     QTableWidget *chargerTable;
     QPushButton *reserveBtn;
     QPushButton *navigateBtn;
-    QPushButton *backHomeBtn;
-    int currentStationId = 0;
+    QPushButton *backBtn;
+
+    void setupTable();
+    void onReserve();
+    void onNavigate();
 };
+
+#endif // STATIONDETAILPAGE_H

@@ -1,16 +1,18 @@
-#pragma once
+#ifndef LOGINWINDOW_H
+#define LOGINWINDOW_H
+
 #include <QWidget>
 #include <QLineEdit>
-#include <QPushButton>
 #include <QLabel>
+#include <QPushButton>
 #include <QTimer>
 #include "core/models/User.h"
 
-class LoginPage : public QWidget {
+class LoginWindow : public QWidget
+{
     Q_OBJECT
 public:
-    LoginPage(QWidget *parent = nullptr);
-    void clearInputs();
+    explicit LoginWindow(QWidget *parent = nullptr);
 
 signals:
     void loginSuccess(const User &user);
@@ -18,11 +20,16 @@ signals:
 private:
     QLineEdit *phoneEdit;
     QLineEdit *codeEdit;
+    QLabel *hintLabel;
     QPushButton *getOtpBtn;
     QPushButton *loginBtn;
-    QLabel *hintLabel;
-    
+
+    QString currentOtp;
     QTimer otpTimer;
     int otpCountdown = 0;
-    QString generatedOtp;
+
+    void onGetOtpClicked();
+    void onLoginClicked();
 };
+
+#endif // LOGINWINDOW_H

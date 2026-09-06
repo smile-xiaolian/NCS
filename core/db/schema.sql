@@ -10,13 +10,14 @@
 -- 结构版本表（UC-D-02 版本管理）
 CREATE TABLE IF NOT EXISTS schema_version(version INTEGER);
 
--- 用户表（车主）：手机号唯一标识，支持冻结
+-- 用户表（车主）：手机号唯一标识，支持冻结，新增 debt 记录欠费金额
 CREATE TABLE IF NOT EXISTS user(
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     phone TEXT UNIQUE,
     nickname TEXT,
     avatar TEXT,
     balance REAL DEFAULT 0,
+    debt REAL DEFAULT 0,
     status INTEGER DEFAULT 1,
     created_at TEXT
 );
