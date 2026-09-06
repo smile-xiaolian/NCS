@@ -1,5 +1,3 @@
-
-
 add_executable(ncs_user
     main.cpp
     ui/LoginWindow.cpp
@@ -15,12 +13,20 @@ add_executable(ncs_user
 
 target_include_directories(ncs_user PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 
-# 引入 WebEngineWidgets 模块 (UC-U-04)
-target_link_libraries(ncs_user PRIVATE core_lib Qt6::Widgets Qt6::Sql Qt6::WebEngineWidgets)
+# 1. 添加 Qt6::Network 模块依赖
+target_link_libraries(ncs_user PRIVATE core_lib Qt6::Widgets Qt6::Sql Qt6::WebEngineWidgets Qt6::Network)
 set_target_properties(ncs_user PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
-# 内嵌 db/schema.sql 建表脚本 (UC-D-01)
+# 2. 内嵌 db/schema.sql 建表脚本
 qt_add_resources(ncs_user "ncs_schema"
     PREFIX "/"
     BASE "${CMAKE_SOURCE_DIR}/core"
-    FILES "${CMAKE_SOURCE_DIR}/core/db/schema.sql")
+    FILES "${CMAKE_SOURCE_DIR}/core/db/schema.sql"
+)
+
+# 3. 独立内嵌 HTML 导航地图模板
+qt_add_resources(ncs_user "ncs_map_resources"
+    PREFIX "/"
+    BASE "${CMAKE_CURRENT_SOURCE_DIR}"
+    FILES "resources/map_template.html"
+)

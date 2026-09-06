@@ -4,21 +4,23 @@
 #include <QFrame>
 #include <QDesktopServices>
 #include <QUrl>
+#include <QFile>
+#include <QDebug>
 #include "core/utils/Haversine.h"
 
 MapWindow::MapWindow(QWidget *parent) : QWidget(parent)
 {
     auto layout = new QVBoxLayout(this);
     layout->setContentsMargins(15, 15, 15, 15);
-    layout->setSpacing(15);
+    layout->setSpacing(10);
 
-    // 1. 顶部栏：返回按钮与标题
+    // 1. 顶部栏
     auto topLayout = new QHBoxLayout();
     backBtn = new QPushButton("返回", this);
     backBtn->setObjectName("secondaryBtn");
     backBtn->setMaximumWidth(80);
 
-    auto titleLabel = new QLabel("一键路线导航 (方案 B - 保底方案)", this);
+    auto titleLabel = new QLabel("一键路线导航", this);
     titleLabel->setStyleSheet("font-size: 15px; font-weight: bold; color: #2b4c7e;");
 
     topLayout->addWidget(backBtn);
@@ -31,56 +33,74 @@ MapWindow::MapWindow(QWidget *parent) : QWidget(parent)
     auto modeLayout = new QHBoxLayout();
     auto modeTitle = new QLabel("<b>选择出行方式：</b>", this);
     modeCombo = new QComboBox(this);
-    modeCombo->addItem("🚗 驾车路线", "drive");
-    modeCombo->addItem("🚶 步行路线", "walk");
-    modeCombo->addItem("🚌 公交路线", "bus");
+    modeCombo->addItem("驾车路线", "drive");
+    modeCombo->addItem("步行路线", "walk");
+    modeCombo->addItem("公交路线", "bus");
 
     modeLayout->addWidget(modeTitle);
     modeLayout->addWidget(modeCombo, 1);
     layout->addLayout(modeLayout);
 
-    // 3. 页面主体：路线与坐标卡片区域
+    // 3. 内嵌 QWebEngineView 腾讯地图视图
+    webView = new QWebEngineView(this);
+    m_isPageLoaded = false;
+
+    // 监听加载状态
+    connect(webView, &QWebEngineView::loadFinished, this, [this](bool ok) {
+        if (ok) {
+            m_isPageLoaded = true;
+            // 页面首次加载成功后自动渲染当前路线
+            updateMapRoute();
+        } else {
+            qWarning() << "地图 HTML 页面加载失败！";
+        }
+    });
+
+    webView->setUrl(QUrl("qrc:/resources/map_template.html"));
+    webView->setMinimumHeight(350);
+    layout->addWidget(webView, 2);
+
+    // 4. 路线与坐标卡片区域
     auto cardFrame = new QFrame(this);
     cardFrame->setStyleSheet(
         "QFrame { background-color: #ffffff; border-radius: 10px; border: 1px solid #dcdfe6; }"
     );
     auto cardLayout = new QVBoxLayout(cardFrame);
-    cardLayout->setContentsMargins(20, 20, 20, 20);
-    cardLayout->setSpacing(12);
+    cardLayout->setContentsMargins(15, 15, 15, 15);
+    cardLayout->setSpacing(8);
 
     stationNameLabel = new QLabel("目标电站：-", this);
-    stationNameLabel->setStyleSheet("font-size: 16px; font-weight: bold; color: #409eff; border: none;");
+    stationNameLabel->setStyleSheet("font-size: 15px; font-weight: bold; color: #409eff; border: none;");
     
     startCoordLabel = new QLabel("起点坐标 (当前定位)：-", this);
-    startCoordLabel->setStyleSheet("color: #606266; font-size: 13px; border: none;");
+    startCoordLabel->setStyleSheet("color: #606266; font-size: 12px; border: none;");
 
     endCoordLabel = new QLabel("终点坐标 (目标电站)：-", this);
-    endCoordLabel->setStyleSheet("color: #606266; font-size: 13px; border: none;");
+    endCoordLabel->setStyleSheet("color: #606266; font-size: 12px; border: none;");
 
     distanceLabel = new QLabel("测算直线距离：- km", this);
-    distanceLabel->setStyleSheet("color: #e6a23c; font-size: 14px; font-weight: bold; border: none;");
+    distanceLabel->setStyleSheet("color: #e6a23c; font-size: 13px; font-weight: bold; border: none;");
 
     cardLayout->addWidget(stationNameLabel);
-    cardLayout->addWidget(new QLabel("<hr style='border: none; border-top: 1px solid #f0f0f0;'>", this));
     cardLayout->addWidget(startCoordLabel);
     cardLayout->addWidget(endCoordLabel);
     cardLayout->addWidget(distanceLabel);
-    cardLayout->addStretch();
 
-    layout->addWidget(cardFrame, 1);
+    layout->addWidget(cardFrame);
 
-    // 4. 调起系统浏览器导航按钮
-    openBrowserBtn = new QPushButton("🌐 在系统浏览器中打开腾讯地图路线规划", this);
+    // 5. 调起系统浏览器导航按钮
+    openBrowserBtn = new QPushButton("在系统浏览器中打开腾讯地图路线规划", this);
     openBrowserBtn->setStyleSheet(
-        "QPushButton { background-color: #67c23a; color: white; border-radius: 6px; padding: 12px; font-weight: bold; font-size: 14px; }"
+        "QPushButton { background-color: #67c23a; color: white; border-radius: 6px; padding: 10px; font-weight: bold; font-size: 13px; }"
         "QPushButton:hover { background-color: #85ce61; }"
         "QPushButton:pressed { background-color: #5daf34; }"
     );
     layout->addWidget(openBrowserBtn);
 
-    // 5. 信号槽关联
+    // 6. 信号槽关联
     connect(backBtn, &QPushButton::clicked, this, &MapWindow::backRequested);
     connect(openBrowserBtn, &QPushButton::clicked, this, &MapWindow::openTencentMapUrl);
+    connect(modeCombo, &QComboBox::currentIndexChanged, this, &MapWindow::updateMapRoute);
 }
 
 void MapWindow::loadRoute(double startLat, double startLng, double endLat, double endLng, const QString &stationName)
@@ -98,12 +118,32 @@ void MapWindow::loadRoute(double startLat, double startLng, double endLat, doubl
     startCoordLabel->setText(QString("起点坐标 (当前定位)：%1, %2").arg(startLat, 0, 'f', 4).arg(startLng, 0, 'f', 4));
     endCoordLabel->setText(QString("终点坐标 (目标电站)：%1, %2").arg(endLat, 0, 'f', 4).arg(endLng, 0, 'f', 4));
     distanceLabel->setText(QString("测算直线距离：约 %1 km").arg(distKm, 0, 'f', 1));
+
+    updateMapRoute();
+}
+
+void MapWindow::updateMapRoute()
+{
+    // 如果页面还没加载完毕，直接放弃执行 JS，避免死掉
+    if (!m_isPageLoaded) {
+        return;
+    }
+
+    QString mode = modeCombo->currentData().toString();
+    QString jsCode = QString("renderRoute(%1, %2, %3, %4, '%5');")
+                        .arg(m_startLat, 0, 'f', 6)
+                        .arg(m_startLng, 0, 'f', 6)
+                        .arg(m_endLat, 0, 'f', 6)
+                        .arg(m_endLng, 0, 'f', 6)
+                        .arg(mode);
+
+    // 确认页面载入完成才安全执行
+    webView->page()->runJavaScript(jsCode);
 }
 
 void MapWindow::openTencentMapUrl()
 {
     QString mode = modeCombo->currentData().toString();
-    // 使用 QDesktopServices::openUrl 调起腾讯地图路线规划网页
     QString urlStr = QString("https://apis.map.qq.com/uri/v1/routeplan?type=%1&to=%2&coord=%3,%4&policy=0&referer=ncs")
                         .arg(mode)
                         .arg(m_stationName)

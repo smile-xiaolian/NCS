@@ -26,7 +26,7 @@ StationDetailPage::StationDetailPage(QWidget *parent) : QWidget(parent)
     reserveBtn = new QPushButton("预约选中电桩");
     reserveBtn->setStyleSheet("background-color: #7c3aed; color: white; font-weight: bold; border-radius: 6px; padding: 10px;");
 
-    navigateBtn = new QPushButton("一键导航 (嵌入腾讯地图)");
+    navigateBtn = new QPushButton("一键导航");
     navigateBtn->setObjectName("secondaryBtn");
 
     backBtn = new QPushButton("返回首页");

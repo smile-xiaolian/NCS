@@ -5,6 +5,7 @@
 #include <QLabel>
 #include <QPushButton>
 #include <QComboBox>
+#include <QWebEngineView>
 
 class MapWindow : public QWidget
 {
@@ -29,6 +30,10 @@ private:
     QPushButton *openBrowserBtn;
     QPushButton *backBtn;
 
+    // 内嵌 WebEngine 视图
+    QWebEngineView *webView;
+    bool m_isPageLoaded = false; // 记录 WebEngine 页面是否真正加载完毕
+
     // 存储当前导航点位数据
     double m_startLat = 31.2304;
     double m_startLng = 121.4737;
@@ -36,6 +41,7 @@ private:
     double m_endLng = 0.0;
     QString m_stationName;
 
+    void updateMapRoute();
     void openTencentMapUrl();
 };
 

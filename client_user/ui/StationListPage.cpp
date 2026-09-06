@@ -5,10 +5,19 @@
 #include <QHeaderView>
 #include <QMessageBox>
 #include <QPointF>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QJsonArray>
+#include <QUrlQuery>
+#include <QDebug>
 #include "core/service/PlatformService.h"
+
+static const QString TENCENT_MAP_KEY = "VMNBZ-HQHE7-NH2XF-HGZCP-ZDC2T-FMFBU";
 
 StationListPage::StationListPage(QWidget *parent) : QWidget(parent)
 {
+    networkManager = new QNetworkAccessManager(this);
+
     auto layout = new QVBoxLayout(this);
     layout->setContentsMargins(15, 15, 15, 15);
     layout->setSpacing(10);
@@ -21,7 +30,14 @@ StationListPage::StationListPage(QWidget *parent) : QWidget(parent)
     regionCombo->addItem("深圳·福田", QVariant::fromValue(QPointF(22.5431, 114.0579)));
 
     addressEdit = new QLineEdit;
-    addressEdit->setPlaceholderText("搜索区域或详细地址");
+    addressEdit->setPlaceholderText("输入地址或搜索关键字...");
+
+    // 设置自动补全器 Completer
+    completerModel = new QStringListModel(this);
+    completer = new QCompleter(completerModel, this);
+    completer->setCaseSensitivity(Qt::CaseInsensitive);
+    completer->setCompletionMode(QCompleter::UnfilteredPopupCompletion);
+    addressEdit->setCompleter(completer);
 
     locateBtn = new QPushButton("定位");
 
@@ -38,6 +54,19 @@ StationListPage::StationListPage(QWidget *parent) : QWidget(parent)
 
     auto enterDetailBtn = new QPushButton("进入选桩详情页");
     layout->addWidget(enterDetailBtn);
+
+    // 监听输入框文本改变，触发联想建议接口
+    connect(addressEdit, &QLineEdit::textEdited, this, &StationListPage::fetchAddressSuggestions);
+
+    // 用户从联想下拉列表中选中某一项时
+    connect(completer, QOverload<const QString &>::of(&QCompleter::activated), this, [this](const QString &text) {
+        if (suggestionCoords.contains(text)) {
+            auto pair = suggestionCoords[text];
+            currentLat = pair.first;
+            currentLng = pair.second;
+            refreshStations();
+        }
+    });
 
     connect(locateBtn, &QPushButton::clicked, this, &StationListPage::onLocate);
     connect(enterDetailBtn, &QPushButton::clicked, this, &StationListPage::onStationClick);
@@ -86,15 +115,111 @@ void StationListPage::refreshStations()
     }
 }
 
+// 关键词输入提示 API（联想列表）
+void StationListPage::fetchAddressSuggestions(const QString &keyword)
+{
+    if (keyword.trimmed().isEmpty()) {
+        completerModel->setStringList(QStringList());
+        return;
+    }
+
+    QUrl url("https://apis.map.qq.com/ws/place/v1/suggestion");
+    QUrlQuery query;
+    query.addQueryItem("keyword", keyword);
+    query.addQueryItem("key", TENCENT_MAP_KEY);
+    url.setQuery(query);
+
+    QNetworkRequest request(url);
+    QNetworkReply *reply = networkManager->get(request);
+
+    connect(reply, &QNetworkReply::finished, this, [this, reply]() {
+        reply->deleteLater();
+        if (reply->error() != QNetworkReply::NoError) {
+            qWarning() << "联想搜索网络请求失败：" << reply->errorString();
+            return;
+        }
+
+        QByteArray data = reply->readAll();
+        QJsonDocument doc = QJsonDocument::fromJson(data);
+        QJsonObject rootObj = doc.object();
+
+        int status = rootObj["status"].toInt();
+        if (status == 0) {
+            QJsonArray dataArray = rootObj["data"].toArray();
+            QStringList suggestions;
+            suggestionCoords.clear();
+
+            for (const QJsonValue &val : dataArray) {
+                QJsonObject item = val.toObject();
+                QString title = item["title"].toString();
+                QString address = item["address"].toString();
+                QJsonObject loc = item["location"].toObject();
+
+                QString displayStr = QString("%1 (%2)").arg(title, address);
+                suggestions.append(displayStr);
+                
+                suggestionCoords[displayStr] = qMakePair(loc["lat"].toDouble(), loc["lng"].toDouble());
+            }
+
+            completerModel->setStringList(suggestions);
+            completer->complete();
+        } else {
+            qWarning() << "腾讯地图 Suggestion API 异常，status:" << status << " message:" << rootObj["message"].toString();
+        }
+    });
+}
+
 void StationListPage::onLocate()
 {
-    QPointF coords = regionCombo->currentData().toPointF();
-    currentLat = coords.x();
-    currentLng = coords.y();
-    if (!addressEdit->text().trimmed().isEmpty()) {
-        QMessageBox::information(this, "提示", QString("已使用“%1”的预置坐标进行测算。").arg(regionCombo->currentText()));
+    QString inputAddr = addressEdit->text().trimmed();
+    if (suggestionCoords.contains(inputAddr)) {
+        auto pair = suggestionCoords[inputAddr];
+        currentLat = pair.first;
+        currentLng = pair.second;
+        refreshStations();
+    } else if (!inputAddr.isEmpty()) {
+        geocodeAddress(inputAddr);
+    } else {
+        QPointF coords = regionCombo->currentData().toPointF();
+        currentLat = coords.x();
+        currentLng = coords.y();
+        refreshStations();
     }
-    refreshStations();
+}
+
+void StationListPage::geocodeAddress(const QString &address)
+{
+    QUrl url("https://apis.map.qq.com/ws/geocoder/v1/");
+    QUrlQuery query;
+    query.addQueryItem("address", address);
+    query.addQueryItem("key", TENCENT_MAP_KEY);
+    url.setQuery(query);
+
+    QNetworkRequest request(url);
+    QNetworkReply *reply = networkManager->get(request);
+
+    connect(reply, &QNetworkReply::finished, this, [this, reply, address]() {
+        reply->deleteLater();
+        if (reply->error() != QNetworkReply::NoError) {
+            QMessageBox::warning(this, "定位失败", "网络请求错误：" + reply->errorString());
+            return;
+        }
+
+        QByteArray data = reply->readAll();
+        QJsonDocument doc = QJsonDocument::fromJson(data);
+        QJsonObject rootObj = doc.object();
+
+        if (rootObj["status"].toInt() == 0) {
+            QJsonObject locationObj = rootObj["result"].toObject()["location"].toObject();
+            currentLat = locationObj["lat"].toDouble();
+            currentLng = locationObj["lng"].toDouble();
+
+            QMessageBox::information(this, "定位成功", QString("已精确定位至：%1").arg(address));
+            refreshStations();
+        } else {
+            QMessageBox::warning(this, "定位失败", "无法解析输入的地址，请重试");
+        }
+    });
 }
 
 void StationListPage::onStationClick()

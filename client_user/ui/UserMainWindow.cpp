@@ -106,11 +106,15 @@ UserMainWindow::UserMainWindow(QWidget *parent) : QWidget(parent)
         updateNavStyle(1);
     });
 
+    // 修改 StationDetailPage 的 navigateRequested 绑定的 lambda 表达式：
     connect(stationDetailPage, &StationDetailPage::navigateRequested, this, [this](double lat, double lng, const QString &name) {
-        // 起点为人民广场当前定位，终点为所选电站坐标
-        mapWindow->loadRoute(31.2304, 121.4737, lat, lng, name);
+    // 获取列表页当前输入的定位坐标作为导航起点
+        double startLat = stationListPage->getCurrentLat();
+        double startLng = stationListPage->getCurrentLng();
+
+        mapWindow->loadRoute(startLat, startLng, lat, lng, name);
         stackedWidget->setCurrentIndex(6); // 切换至导航页
-    });
+});
 
     connect(mapWindow, &MapWindow::backRequested, this, [this] {
         stackedWidget->setCurrentIndex(2); // 返回详情页

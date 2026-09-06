@@ -1,5 +1,0 @@
-ncs_user_autogen/timestamp: \
-	/home/lan/projects/NCS/client_user/CMakeLists.txt \
-	/home/lan/projects/NCS/client_user/main.cpp \
-	/usr/lib/x86_64-linux-gnu/cmake/Qt6Core/Qt6CoreConfigureFileTemplate.in \
-	/usr/bin/cmake
