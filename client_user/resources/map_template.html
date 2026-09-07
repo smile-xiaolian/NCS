@@ -4,37 +4,39 @@
     <meta charset="utf-8">
     <title>路线导航</title>
     <style>
-        html, body, #container {
-            width: 100%;
-            height: 100%;
-            margin: 0;
-            padding: 0;
-        }
+        * { margin: 0; padding: 0; }
+        html, body { width: 100%; height: 100%; overflow: hidden; }
+        #container { width: 100%; height: 100vh; }
     </style>
-    <!-- 请将下面的 YOUR_TENCENT_MAP_KEY 替换为你申请的腾讯地图 KEY -->
-    <script src="https://map.qq.com/api/gljs?v=1.exp&key=VMNBZ-HQHE7-NH2XF-HGZCP-ZDC2T-FMFBU&libraries=service"></script>
+    <!-- ⚠️ 请务必替换为新申请且额度充足的 Key -->
+    <script src="https://map.qq.com/api/gljs?v=1.exp&key=YOUR_NEW_TENCENT_KEY&libraries=service"></script>
 </head>
 <body>
 <div id="container"></div>
 <script>
-    var map;
+    var map = null;
     var currentPolyline = null;
     var markers = [];
 
     function initMap() {
-        // 初始化地图，默认中心点为上海人民广场
-        map = new TMap.Map('container', {
-            center: new TMap.LatLng(31.2304, 121.4737),
-            zoom: 12
-        });
+        try {
+            map = new TMap.Map('container', {
+                center: new TMap.LatLng(31.2304, 121.4737),
+                zoom: 12
+            });
+            console.log("地图初始化成功！");
+        } catch (e) {
+            console.error("地图初始化失败:", e);
+        }
     }
 
-    // 绘制路线函数（供 C++ 通过 QWebEnginePage::runJavaScript 调用）
     function renderRoute(startLat, startLng, endLat, endLng, mode) {
+        console.log("收到路线规划参数:", startLat, startLng, endLat, endLng, mode);
         if (!map) initMap();
+        if (!map) return;
 
-        // 清理旧标记和路线
-        markers.forEach(m => m.setMap(null));
+        // 清理旧标记
+        markers.forEach(function(m) { m.setMap(null); });
         markers = [];
         if (currentPolyline) {
             currentPolyline.setMap(null);
@@ -44,36 +46,21 @@
         var startLatLng = new TMap.LatLng(startLat, startLng);
         var endLatLng = new TMap.LatLng(endLat, endLng);
 
-        // 添加起点和终点 Marker
         var markerLayer = new TMap.MultiMarker({
             id: 'marker-layer',
             map: map,
-            styles: {
-                'start': new TMap.MarkerStyle({
-                    'width': 25,
-                    'height': 35,
-                    'anchor': { x: 12, y: 35 }
-                }),
-                'end': new TMap.MarkerStyle({
-                    'width': 25,
-                    'height': 35,
-                    'anchor': { x: 12, y: 35 }
-                })
-            },
             geometries: [
-                { id: 'start', styleId: 'start', position: startLatLng },
-                { id: 'end', styleId: 'end', position: endLatLng }
+                { id: 'start', position: startLatLng },
+                { id: 'end', position: endLatLng }
             ]
         });
         markers.push(markerLayer);
 
-        // 调整视野以覆盖起终点
         var bounds = new TMap.LatLngBounds();
         bounds.extend(startLatLng);
         bounds.extend(endLatLng);
-        map.fitBounds(bounds, { padding: 80 });
+        map.fitBounds(bounds, { padding: 60 });
 
-        // 根据出行方式选择服务类
         var routeService;
         if (mode === 'walk') {
             routeService = new TMap.service.Walking();
@@ -83,45 +70,31 @@
             routeService = new TMap.service.Driving();
         }
 
-        // 发起路线规划
         routeService.search({
             from: startLatLng,
             to: endLatLng
         }).then(function (result) {
             if (result.result && result.result.routes && result.result.routes.length > 0) {
                 var route = result.result.routes[0];
-                var path = [];
-                
-                // 解析路线坐标轨迹
+                var path = (mode === 'bus') ? [] : route.polyline;
                 if (mode === 'bus') {
-                    route.steps.forEach(function(step) {
-                        if (step.path) path = path.concat(step.path);
-                    });
-                } else {
-                    path = route.polyline;
+                    route.steps.forEach(function(s) { if (s.path) path = path.concat(s.path); });
                 }
 
-                // 绘制路线折线
                 currentPolyline = new TMap.MultiPolyline({
                     id: 'polyline-layer',
                     map: map,
                     styles: {
                         'style_blue': new TMap.PolylineStyle({
                             'color': '#3777FF',
-                            'width': 6,
-                            'borderWidth': 2,
-                            'borderColor': '#FFFFFF'
+                            'width': 6
                         })
                     },
-                    geometries: [{
-                        id: 'route',
-                        styleId: 'style_blue',
-                        paths: path
-                    }]
+                    geometries: [{ id: 'route', styleId: 'style_blue', paths: path }]
                 });
             }
-        }).catch(function (error) {
-            console.error('路线规划失败：', error);
+        }).catch(function (err) {
+            console.error("路线搜索失败:", err);
         });
     }
 

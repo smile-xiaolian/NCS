@@ -1,0 +1,6 @@
+<RCC>
+  <qresource prefix="/">
+    <file alias="resources/map_template.html">/home/bit/NCS/client_user/resources/map_template.html</file>
+  </qresource>
+</RCC>
+

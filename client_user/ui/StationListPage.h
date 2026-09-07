@@ -5,12 +5,14 @@
 #include <QComboBox>
 #include <QLineEdit>
 #include <QPushButton>
-#include <QTableWidget>
+#include <QScrollArea>
+#include <QVBoxLayout>
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
 #include <QCompleter>
 #include <QStringListModel>
 #include <QMap>
+#include <QEvent> // 
 
 class StationListPage : public QWidget
 {
@@ -24,28 +26,35 @@ public:
 
 signals:
     void stationSelected(int stationId);
+    
+protected:
+    // <--- 补充 eventFilter 的虚函数重写声明
+    bool eventFilter(QObject *watched, QEvent *event) override;
 
 private:
     QComboBox *regionCombo;
     QLineEdit *addressEdit;
     QPushButton *locateBtn;
-    QTableWidget *stationTable;
+
+    // 替换原有的 QTableWidget，使用滚动区域放置小卡片列表
+    QScrollArea *scrollArea;
+    QWidget *cardContainerWidget;
+    QVBoxLayout *cardContainerLayout;
+
     QNetworkAccessManager *networkManager;
 
     // 联想输入相关
     QCompleter *completer;
     QStringListModel *completerModel;
-    // 用于保存建议名称与坐标 (lat, lng) 的映射
     QMap<QString, QPair<double, double>> suggestionCoords;
 
     double currentLat = 31.2304;
     double currentLng = 121.4737;
 
-    void setupTable();
     void onLocate();
     void fetchAddressSuggestions(const QString &keyword);
     void geocodeAddress(const QString &address);
-    void onStationClick();
+    QWidget* createStationCard(const QVariantMap &stationMap);
 };
 
 #endif // STATIONLISTPAGE_H

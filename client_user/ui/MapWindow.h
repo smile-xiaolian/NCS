@@ -7,6 +7,26 @@
 #include <QComboBox>
 #include <QWebEngineView>
 
+
+// 1. 自定义派生类，重写控制台日志输出函数
+class CustomWebPage : public QWebEnginePage
+{
+    Q_OBJECT
+public:
+    explicit CustomWebPage(QObject *parent = nullptr) : QWebEnginePage(parent) {}
+
+protected:
+    void javaScriptConsoleMessage(JavaScriptConsoleMessageLevel level,
+                                  const QString &message,
+                                  int lineNumber,
+                                  const QString &sourceID) override
+    {
+        Q_UNUSED(level);
+        Q_UNUSED(sourceID);
+        qDebug() << "[Web Console]" << message << " (Line:" << lineNumber << ")";
+    }
+};
+
 class MapWindow : public QWidget
 {
     Q_OBJECT

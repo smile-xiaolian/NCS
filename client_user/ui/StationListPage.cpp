@@ -2,7 +2,6 @@
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QLabel>
-#include <QHeaderView>
 #include <QMessageBox>
 #include <QPointF>
 #include <QJsonDocument>
@@ -10,6 +9,9 @@
 #include <QJsonArray>
 #include <QUrlQuery>
 #include <QDebug>
+#include <QMouseEvent>
+#include <QAbstractItemView>
+
 #include "core/service/PlatformService.h"
 
 static const QString TENCENT_MAP_KEY = "VMNBZ-HQHE7-NH2XF-HGZCP-ZDC2T-FMFBU";
@@ -18,10 +20,11 @@ StationListPage::StationListPage(QWidget *parent) : QWidget(parent)
 {
     networkManager = new QNetworkAccessManager(this);
 
-    auto layout = new QVBoxLayout(this);
-    layout->setContentsMargins(15, 15, 15, 15);
-    layout->setSpacing(10);
+    auto mainLayout = new QVBoxLayout(this);
+    mainLayout->setContentsMargins(15, 15, 15, 15);
+    mainLayout->setSpacing(10);
 
+    // 1. 顶部定位选择区
     auto locateLayout = new QHBoxLayout();
     regionCombo = new QComboBox;
     regionCombo->addItem("上海·人民广场", QVariant::fromValue(QPointF(31.2304, 121.4737)));
@@ -32,7 +35,6 @@ StationListPage::StationListPage(QWidget *parent) : QWidget(parent)
     addressEdit = new QLineEdit;
     addressEdit->setPlaceholderText("输入地址或搜索关键字...");
 
-    // 设置自动补全器 Completer
     completerModel = new QStringListModel(this);
     completer = new QCompleter(completerModel, this);
     completer->setCaseSensitivity(Qt::CaseInsensitive);
@@ -44,78 +46,154 @@ StationListPage::StationListPage(QWidget *parent) : QWidget(parent)
     locateLayout->addWidget(regionCombo, 2);
     locateLayout->addWidget(addressEdit, 2);
     locateLayout->addWidget(locateBtn, 1);
-    layout->addLayout(locateLayout);
+    mainLayout->addLayout(locateLayout);
 
-    layout->addWidget(new QLabel("<b>附近优质充电站（点击卡片直接预约）</b>"));
+    mainLayout->addWidget(new QLabel("<b>附近优质充电站（点击卡片选择电桩）</b>"));
 
-    stationTable = new QTableWidget;
-    setupTable();
-    layout->addWidget(stationTable);
+    // 2. 替换为卡片滚动列表容器
+    scrollArea = new QScrollArea(this);
+    scrollArea->setWidgetResizable(true);
+    scrollArea->setFrameShape(QFrame::NoFrame);
+    scrollArea->setStyleSheet("QScrollArea { background: transparent; }");
 
-    auto enterDetailBtn = new QPushButton("进入选桩详情页");
-    layout->addWidget(enterDetailBtn);
+    cardContainerWidget = new QWidget();
+    cardContainerWidget->setStyleSheet("background: transparent;");
+    cardContainerLayout = new QVBoxLayout(cardContainerWidget);
+    cardContainerLayout->setContentsMargins(0, 0, 0, 0);
+    cardContainerLayout->setSpacing(12);
+    cardContainerLayout->addStretch(); // 底部弹簧置底
 
-    // 监听输入框文本改变，触发联想建议接口
+    scrollArea->setWidget(cardContainerWidget);
+    mainLayout->addWidget(scrollArea);
+
+    // 3. 信号槽绑定
     connect(addressEdit, &QLineEdit::textEdited, this, &StationListPage::fetchAddressSuggestions);
 
-    // 用户从联想下拉列表中选中某一项时
-    connect(completer, QOverload<const QString &>::of(&QCompleter::activated), this, [this](const QString &text) {
+    QAbstractItemView *popup = completer->popup();
+    connect(popup, &QAbstractItemView::clicked, this, [this](const QModelIndex &index) {
+        QString text = index.data(Qt::DisplayRole).toString();
         if (suggestionCoords.contains(text)) {
             auto pair = suggestionCoords[text];
             currentLat = pair.first;
             currentLng = pair.second;
+            addressEdit->setText(text);
             refreshStations();
         }
     });
 
     connect(locateBtn, &QPushButton::clicked, this, &StationListPage::onLocate);
-    connect(enterDetailBtn, &QPushButton::clicked, this, &StationListPage::onStationClick);
-    connect(stationTable, &QTableWidget::doubleClicked, this, &StationListPage::onStationClick);
-}
-
-void StationListPage::setupTable()
-{
-    QStringList headers = { "站点名称", "单价", "空闲/总数", "距离" };
-    stationTable->setColumnCount(headers.size());
-    stationTable->setHorizontalHeaderLabels(headers);
-    stationTable->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
-    stationTable->setSelectionBehavior(QAbstractItemView::SelectRows);
-    stationTable->setEditTriggers(QAbstractItemView::NoEditTriggers);
-    stationTable->verticalHeader()->setVisible(false);
-    stationTable->setStyleSheet(
-        "QTableWidget { background-color: #ffffff; alternate-background-color: #f9f9f9; border: 1px solid #e0e0e0; border-radius: 8px; gridline-color: #f0f0f0; }"
-        "QHeaderView::section { background-color: #f5f7fa; padding: 8px; border: none; font-weight: bold; color: #333333; }"
-    );
 }
 
 void StationListPage::refreshStations()
 {
-    auto list = PlatformService::stations(currentLat, currentLng);
-    stationTable->setRowCount(list.size());
-
-    for (int i = 0; i < list.size(); i++)
-    {
-        auto m = list[i].toMap();
-        QStringList v = {
-            m["name"].toString(),
-            QString("%1 元/度").arg(m["price"].toDouble(), 0, 'f', 2),
-            QString("%1 / %2 桩").arg(m["idle"].toInt()).arg(m["total"].toInt()),
-            QString("%1 km").arg(m["distance"].toDouble(), 0, 'f', 1)
-        };
-
-        for (int j = 0; j < v.size(); j++)
-        {
-            auto item = new QTableWidgetItem(v[j]);
-            if (j == 2) {
-                item->setForeground(m["idle"].toInt() > 0 ? QColor("#52c41a") : QColor("#ff4d4f"));
-            }
-            stationTable->setItem(i, j, item);
+    // 清空旧的卡片（保留最后的弹簧）
+    QLayoutItem *item;
+    while ((item = cardContainerLayout->takeAt(0)) != nullptr) {
+        if (item->widget()) {
+            delete item->widget();
         }
-        stationTable->item(i, 0)->setData(Qt::UserRole, m["id"]);
+        delete item;
     }
+
+    // 从数据库获取充电站数据并自动按距离排序[cite: 6]
+    auto list = PlatformService::stations(currentLat, currentLng);
+
+    for (const auto &var : list) {
+        QVariantMap m = var.toMap();
+        QWidget *card = createStationCard(m);
+        cardContainerLayout->addWidget(card);
+    }
+
+    // 在底部重新加回弹性垫片
+    cardContainerLayout->addStretch();
 }
 
-// 关键词输入提示 API（联想列表）
+QWidget* StationListPage::createStationCard(const QVariantMap &m)
+{
+    int stationId = m["id"].toInt();
+    QString name = m["name"].toString();
+    QString address = m["address"].toString();
+    double price = m["price"].toDouble();
+    int idle = m["idle"].toInt();
+    int total = m["total"].toInt();
+    double distance = m["distance"].toDouble();
+
+    // 1. 卡片外层容器 Widget
+    auto cardWidget = new QWidget();
+    cardWidget->setCursor(Qt::PointingHandCursor);
+    cardWidget->setStyleSheet(
+        "QWidget {"
+        "   background-color: #ffffff;"
+        "   border: 1px solid #e4e7ed;"
+        "   border-radius: 12px;"
+        "}"
+        "QWidget:hover {"
+        "   border-color: #409eff;"
+        "   background-color: #f8fafc;"
+        "}"
+    );
+
+    auto cardLayout = new QVBoxLayout(cardWidget);
+    cardLayout->setContentsMargins(15, 12, 15, 12);
+    cardLayout->setSpacing(6);
+
+    // 2. 第一行：站点名称与距离
+    auto topLayout = new QHBoxLayout();
+    auto nameLabel = new QLabel(name);
+    nameLabel->setStyleSheet("font-size: 15px; font-weight: bold; color: #2c3e50; border: none; background: transparent;");
+
+    auto distLabel = new QLabel(QString("%1 km").arg(distance, 0, 'f', 1));
+    distLabel->setStyleSheet("font-size: 12px; font-weight: bold; color: #e6a23c; border: none; background: transparent;");
+
+    topLayout->addWidget(nameLabel, 1);
+    topLayout->addWidget(distLabel);
+    cardLayout->addLayout(topLayout);
+
+    // 3. 第二行：详细地址
+    auto addrLabel = new QLabel(address.isEmpty() ? "暂无详细地址信息" : address);
+    addrLabel->setStyleSheet("font-size: 12px; color: #909399; border: none; background: transparent;");
+    addrLabel->setWordWrap(true);
+    cardLayout->addWidget(addrLabel);
+
+    // 4. 第三行：单价与空闲/总数统计
+    auto bottomLayout = new QHBoxLayout();
+    
+    auto priceLabel = new QLabel(QString("单价：<font color='#f56c6c'><b>¥ %1</b></font> 元/度").arg(price, 0, 'f', 2));
+    priceLabel->setStyleSheet("font-size: 13px; color: #606266; border: none; background: transparent;");
+
+    QString idleColor = idle > 0 ? "#67c23a" : "#f56c6c";
+    auto idleLabel = new QLabel(QString("空闲 <font color='%1'><b>%2</b></font> / %3 桩").arg(idleColor).arg(idle).arg(total));
+    idleLabel->setStyleSheet("font-size: 12px; color: #606266; border: none; background: transparent;");
+
+    bottomLayout->addWidget(priceLabel);
+    bottomLayout->addStretch();
+    bottomLayout->addWidget(idleLabel);
+    cardLayout->addLayout(bottomLayout);
+
+    // 5. 使用事件过滤器监听整个卡片Widget的点击事件
+    cardWidget->installEventFilter(this);
+    cardWidget->setProperty("stationId", stationId);
+
+    return cardWidget;
+}
+
+// 监听卡片点击事件
+bool StationListPage::eventFilter(QObject *watched, QEvent *event)
+{
+    if (event->type() == QEvent::MouseButtonRelease) {
+        auto mouseEvent = static_cast<QMouseEvent*>(event);
+        if (mouseEvent->button() == Qt::LeftButton) {
+            QVariant prop = watched->property("stationId");
+            if (prop.isValid()) {
+                int stationId = prop.toInt();
+                emit stationSelected(stationId); // 触发进入选桩详情页
+                return true;
+            }
+        }
+    }
+    return QWidget::eventFilter(watched, event);
+}
+
 void StationListPage::fetchAddressSuggestions(const QString &keyword)
 {
     if (keyword.trimmed().isEmpty()) {
@@ -220,15 +298,4 @@ void StationListPage::geocodeAddress(const QString &address)
             QMessageBox::warning(this, "定位失败", "无法解析输入的地址，请重试");
         }
     });
-}
-
-void StationListPage::onStationClick()
-{
-    auto item = stationTable->currentItem();
-    if (!item) {
-        QMessageBox::information(this, "提示", "请先选择一个充电站");
-        return;
-    }
-    int stationId = stationTable->item(item->row(), 0)->data(Qt::UserRole).toInt();
-    emit stationSelected(stationId);
 }

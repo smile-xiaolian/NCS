@@ -14,7 +14,7 @@ MapWindow::MapWindow(QWidget *parent) : QWidget(parent)
     layout->setContentsMargins(15, 15, 15, 15);
     layout->setSpacing(10);
 
-    // 1. 顶部栏
+    // 1. 顶部栏：返回按钮与标题
     auto topLayout = new QHBoxLayout();
     backBtn = new QPushButton("返回", this);
     backBtn->setObjectName("secondaryBtn");
@@ -45,14 +45,17 @@ MapWindow::MapWindow(QWidget *parent) : QWidget(parent)
     webView = new QWebEngineView(this);
     m_isPageLoaded = false;
 
-    // 监听加载状态
+    // 设置自定义 WebPage 捕获控制台日志
+    webView->setPage(new CustomWebPage(webView));
+
+    // 监听 HTML 加载状态
     connect(webView, &QWebEngineView::loadFinished, this, [this](bool ok) {
         if (ok) {
             m_isPageLoaded = true;
-            // 页面首次加载成功后自动渲染当前路线
+            // 页面加载完成后渲染路线
             updateMapRoute();
         } else {
-            qWarning() << "地图 HTML 页面加载失败！";
+            qWarning() << "错误：地图 HTML 页面加载失败！";
         }
     });
 
@@ -124,7 +127,7 @@ void MapWindow::loadRoute(double startLat, double startLng, double endLat, doubl
 
 void MapWindow::updateMapRoute()
 {
-    // 如果页面还没加载完毕，直接放弃执行 JS，避免死掉
+    // 如果 HTML 页面还未载入完毕，直接拦截，避免 Chromium IPC 校验失败闪退
     if (!m_isPageLoaded) {
         return;
     }
@@ -137,7 +140,7 @@ void MapWindow::updateMapRoute()
                         .arg(m_endLng, 0, 'f', 6)
                         .arg(mode);
 
-    // 确认页面载入完成才安全执行
+    // 页面安全载入后执行 JavaScript
     webView->page()->runJavaScript(jsCode);
 }
 

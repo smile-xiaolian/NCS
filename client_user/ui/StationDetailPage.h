@@ -3,8 +3,10 @@
 
 #include <QWidget>
 #include <QLabel>
-#include <QTableWidget>
 #include <QPushButton>
+#include <QScrollArea>
+#include <QVBoxLayout>
+#include <QEvent>
 
 class StationDetailPage : public QWidget
 {
@@ -18,18 +20,25 @@ signals:
     void reservationSuccess();
     void navigateRequested(double lat, double lng, const QString &stationName);
 
+protected:
+    bool eventFilter(QObject *watched, QEvent *event) override;
+
 private:
     int currentStationId = 0;
     int currentUserId = 0;
 
     QLabel *titleLabel;
-    QTableWidget *chargerTable;
-    QPushButton *reserveBtn;
+
+    // 替代原有的 QTableWidget
+    QScrollArea *scrollArea;
+    QWidget *cardContainerWidget;
+    QVBoxLayout *cardContainerLayout;
+
     QPushButton *navigateBtn;
     QPushButton *backBtn;
 
-    void setupTable();
-    void onReserve();
+    QWidget* createChargerCard(const QVariantMap &chargerMap);
+    void reserveCharger(int chargerId);
     void onNavigate();
 };
 
