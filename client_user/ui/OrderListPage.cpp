@@ -1,91 +1,162 @@
 #include "OrderListPage.h"
 #include "OrderTicketDialog.h"
 #include <QVBoxLayout>
-#include <QLabel>
-#include <QHeaderView>
+#include <QHBoxLayout>
 #include <QMessageBox>
+#include <QMouseEvent>
 #include "core/service/PlatformService.h"
 
 OrderListPage::OrderListPage(QWidget *parent) : QWidget(parent)
 {
-    auto layout = new QVBoxLayout(this);
-    layout->setContentsMargins(15, 15, 15, 15);
+    auto mainLayout = new QVBoxLayout(this);
+    mainLayout->setContentsMargins(15, 15, 15, 15);
+    mainLayout->setSpacing(10);
 
-    layout->addWidget(new QLabel("<b>历史订单（点击选中后可弹窗查看小票明细）</b>"));
+    auto tipLabel = new QLabel("<b>我的订单（点击卡片查看小票明细或去结算）</b>");
+    tipLabel->setStyleSheet("font-size: 14px; color: #1e293b;");
+    mainLayout->addWidget(tipLabel);
 
-    orderTable = new QTableWidget;
-    setupTable();
-    layout->addWidget(orderTable);
+    // 滚动区域布局
+    scrollArea = new QScrollArea(this);
+    scrollArea->setWidgetResizable(true);
+    scrollArea->setFrameShape(QFrame::NoFrame);
+    scrollArea->setStyleSheet("QScrollArea { background: transparent; }");
 
-    viewDetailsBtn = new QPushButton("查看订单小票 / 去结算");
-    layout->addWidget(viewDetailsBtn);
+    cardContainerWidget = new QWidget();
+    cardContainerWidget->setStyleSheet("background: transparent;");
+    cardContainerLayout = new QVBoxLayout(cardContainerWidget);
+    cardContainerLayout->setContentsMargins(0, 0, 0, 0);
+    cardContainerLayout->setSpacing(12);
+    cardContainerLayout->addStretch();
 
-    connect(viewDetailsBtn, &QPushButton::clicked, this, &OrderListPage::onViewDetails);
-    connect(orderTable, &QTableWidget::doubleClicked, this, &OrderListPage::onViewDetails);
-}
-
-void OrderListPage::setupTable()
-{
-    QStringList headers = { "电站", "电桩", "状态", "电量", "金额", "时间" };
-    orderTable->setColumnCount(headers.size());
-    orderTable->setHorizontalHeaderLabels(headers);
-    orderTable->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
-    orderTable->setSelectionBehavior(QAbstractItemView::SelectRows);
-    orderTable->setEditTriggers(QAbstractItemView::NoEditTriggers);
-    orderTable->verticalHeader()->setVisible(false);
+    scrollArea->setWidget(cardContainerWidget);
+    mainLayout->addWidget(scrollArea);
 }
 
 void OrderListPage::loadOrders(int userId)
 {
     currentUserId = userId;
-    auto list = PlatformService::orders(userId);
-    orderTable->setRowCount(list.size());
-    QStringList statusStrList = { "预约中", "充电中", "已完成", "已取消" };
 
-    for (int i = 0; i < list.size(); i++)
-    {
-        auto m = list[i].toMap();
-        int stVal = m["status"].toInt();
-        QStringList v = {
-            m["station_name"].toString(),
-            m["charger_code"].toString(),
-            statusStrList.value(stVal),
-            QString::number(m["energy"].toDouble(), 'f', 2) + " kWh",
-            "¥ " + QString::number(m["amount"].toDouble(), 'f', 2),
-            m["created_at"].toString()
-        };
-
-        for (int j = 0; j < v.size(); j++)
-        {
-            auto item = new QTableWidgetItem(v[j]);
-            if (i == 0 && (stVal == 0 || stVal == 1)) {
-                item->setForeground(QColor("#52c41a"));
-                QFont f = item->font();
-                f.setBold(true);
-                item->setFont(f);
-            }
-            orderTable->setItem(i, j, item);
-        }
-        orderTable->item(i, 0)->setData(Qt::UserRole, m["id"]);
-        orderTable->item(i, 0)->setData(Qt::UserRole + 1, stVal);
+    // 清空旧卡片
+    QLayoutItem *item;
+    while ((item = cardContainerLayout->takeAt(0)) != nullptr) {
+        if (item->widget()) delete item->widget();
+        delete item;
     }
+
+    auto list = PlatformService::orders(userId);
+    for (const auto &var : list) {
+        QVariantMap m = var.toMap();
+        QWidget *card = createOrderCard(m);
+        cardContainerLayout->addWidget(card);
+    }
+
+    cardContainerLayout->addStretch();
 }
 
-void OrderListPage::onViewDetails()
+QWidget* OrderListPage::createOrderCard(const QVariantMap &m)
 {
-    auto x = orderTable->currentItem();
-    if (!x) {
-        QMessageBox::information(this, "提示", "请选择一条订单");
-        return;
+    int orderId = m["id"].toInt();
+    int stVal = m["status"].toInt(); // 0: 预约中, 1: 充电中, 2: 已完成, 3: 已取消
+    QString stationName = m["station_name"].toString();
+    QString chargerCode = m["charger_code"].toString();
+    double energy = m["energy"].toDouble();
+    double amount = m["amount"].toDouble();
+    QString createdAt = m["created_at"].toString();
+
+    // 状态样式映射
+    QString statusStr = "未知";
+    QString statusColor = "#94a3b8";
+    if (stVal == 0) { statusStr = "预约中"; statusColor = "#f59e0b"; }
+    else if (stVal == 1) { statusStr = "充电中"; statusColor = "#10b981"; }
+    else if (stVal == 2) { statusStr = "已完成"; statusColor = "#3b82f6"; }
+    else if (stVal == 3) { statusStr = "已取消"; statusColor = "#ef4444"; }
+
+    auto cardWidget = new QWidget();
+    cardWidget->setCursor(Qt::PointingHandCursor);
+    cardWidget->setStyleSheet(
+        "QWidget {"
+        "   background-color: #ffffff;"
+        "   border: 1px solid #e2e8f0;"
+        "   border-radius: 12px;"
+        "}"
+        "QWidget:hover {"
+        "   border-color: #3b82f6;"
+        "   background-color: #f8fafc;"
+        "}"
+    );
+
+    auto cardLayout = new QVBoxLayout(cardWidget);
+    cardLayout->setContentsMargins(15, 12, 15, 12);
+    cardLayout->setSpacing(6);
+
+    // 顶部：电站名与状态
+    auto topLayout = new QHBoxLayout();
+    auto nameLabel = new QLabel(stationName);
+    nameLabel->setStyleSheet("font-size: 15px; font-weight: bold; color: #0f172a; border: none; background: transparent;");
+
+    auto statusLabel = new QLabel(QString("<font color='%1'>● <b>%2</b></font>").arg(statusColor, statusStr));
+    statusLabel->setStyleSheet("font-size: 13px; border: none; background: transparent;");
+
+    topLayout->addWidget(nameLabel, 1);
+    topLayout->addWidget(statusLabel);
+    cardLayout->addLayout(topLayout);
+
+    // 中部：枪号与时间
+    auto midLayout = new QHBoxLayout();
+    auto codeLabel = new QLabel(QString("电桩：<b>%1</b>").arg(chargerCode));
+    codeLabel->setStyleSheet("font-size: 12px; color: #64748b; border: none; background: transparent;");
+
+    auto timeLabel = new QLabel(createdAt);
+    timeLabel->setStyleSheet("font-size: 11px; color: #94a3b8; border: none; background: transparent;");
+
+    midLayout->addWidget(codeLabel);
+    midLayout->addStretch();
+    midLayout->addWidget(timeLabel);
+    cardLayout->addLayout(midLayout);
+
+    // 底部：电量与金额
+    auto bottomLayout = new QHBoxLayout();
+    auto energyLabel = new QLabel(QString("用电量：<b>%1 kWh</b>").arg(energy, 0, 'f', 2));
+    energyLabel->setStyleSheet("font-size: 12px; color: #475569; border: none; background: transparent;");
+
+    auto amountLabel = new QLabel(QString("金额：<font color='#ef4444'><b>¥ %1</b></font>").arg(amount, 0, 'f', 2));
+    amountLabel->setStyleSheet("font-size: 14px; border: none; background: transparent;");
+
+    bottomLayout->addWidget(energyLabel);
+    bottomLayout->addStretch();
+    bottomLayout->addWidget(amountLabel);
+    cardLayout->addLayout(bottomLayout);
+
+    cardWidget->installEventFilter(this);
+    cardWidget->setProperty("orderId", orderId);
+    cardWidget->setProperty("orderStatus", stVal);
+
+    return cardWidget;
+}
+
+bool OrderListPage::eventFilter(QObject *watched, QEvent *event)
+{
+    if (event->type() == QEvent::MouseButtonRelease) {
+        auto mouseEvent = static_cast<QMouseEvent*>(event);
+        if (mouseEvent->button() == Qt::LeftButton) {
+            QVariant idProp = watched->property("orderId");
+            QVariant stProp = watched->property("orderStatus");
+            if (idProp.isValid() && stProp.isValid()) {
+                handleOrderClick(idProp.toInt(), stProp.toInt());
+                return true;
+            }
+        }
     }
+    return QWidget::eventFilter(watched, event);
+}
 
-    int orderId = orderTable->item(x->row(), 0)->data(Qt::UserRole).toInt();
-    int stVal = orderTable->item(x->row(), 0)->data(Qt::UserRole + 1).toInt();
-
-    if (stVal == 0 || stVal == 1) {
-        emit goToSettleRequested();
+void OrderListPage::handleOrderClick(int orderId, int status)
+{
+    if (status == 0 || status == 1) {
+        emit goToSettleRequested(); // 活跃订单跳转结算页[cite: 16]
     } else {
-        // 选中历史订单：弹窗展示模拟纸质小票明细
+        // 历史订单打开纸质小票弹窗[cite: 16]
         auto ordersList = PlatformService::orders(currentUserId);
         for (auto &o : ordersList) {
             auto m = o.toMap();

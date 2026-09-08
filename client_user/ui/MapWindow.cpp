@@ -138,8 +138,12 @@ void MapWindow::loadRoute(double startLat, double startLng, double endLat, doubl
 
 void MapWindow::updateMapRoute()
 {
-    // 如果 HTML 页面还未载入完毕，直接拦截，避免 Chromium IPC 校验失败闪退
-    if (!m_isPageLoaded) {
+    
+    
+    
+    
+    // 如果 HTML 页面还未载入完毕，或终点坐标尚未设置 (为 0.0)，暂停发送，避免 API 报错
+    if (!m_isPageLoaded || (m_endLat == 0.0 && m_endLng == 0.0)) {
         return;
     }
 
@@ -158,11 +162,33 @@ void MapWindow::updateMapRoute()
 void MapWindow::openTencentMapUrl()
 {
     QString mode = modeCombo->currentData().toString();
-    QString urlStr = QString("https://apis.map.qq.com/uri/v1/routeplan?type=%1&to=%2&coord=%3,%4&policy=0&referer=ncs")
-                        .arg(mode)
-                        .arg(m_stationName)
-                        .arg(m_endLat)
-                        .arg(m_endLng);
+    
+    // 映射出行模式为腾讯地图 URI 参数格式 (drive:驾车, bus:公交, walk:步行)
+    QString routeType = "drive";
+    if (mode == "walk") {
+        routeType = "walk";
+    } else if (mode == "bus") {
+        routeType = "bus";
+    } else {
+        routeType = "drive";
+    }
 
+    // 拼接腾讯地图 URI 路线规划 URL
+    // from: 起点名称, fromcoord: 起点坐标 (纬度,经度)
+    // to: 终点名称, tocoord: 终点坐标 (纬度,经度)
+    // type: 路线类型, policy: 0 (推荐策略)
+    QString urlStr = QString("https://apis.map.qq.com/uri/v1/routeplan?"
+                             "type=%1&"
+                             "from=当前定位&fromcoord=%2,%3&"
+                             "to=%4&tocoord=%5,%6&"
+                             "policy=0&referer=ncs")
+                        .arg(routeType)
+                        .arg(m_startLat, 0, 'f', 6)
+                        .arg(m_startLng, 0, 'f', 6)
+                        .arg(QUrl::toPercentEncoding(m_stationName))
+                        .arg(m_endLat, 0, 'f', 6)
+                        .arg(m_endLng, 0, 'f', 6);
+
+    // 调用系统默认浏览器打开 Web 路线规划页面
     QDesktopServices::openUrl(QUrl(urlStr));
 }

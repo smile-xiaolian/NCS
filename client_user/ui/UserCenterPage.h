@@ -3,7 +3,6 @@
 
 #include <QWidget>
 #include <QLabel>
-#include <QLineEdit>
 #include <QPushButton>
 #include <QCamera>
 #include <QMediaCaptureSession>
@@ -27,23 +26,25 @@ private:
     User u;
 
     QLabel *avatarLabel;
-    QLabel *infoLabel;
-    QLineEdit *nickEdit;
-    QLineEdit *moneyEdit;
+    QLabel *nicknameLabel;
+    QLabel *phoneLabel;
+    QLabel *balanceLabel;
+    QLabel *debtLabel;
 
     QPushButton *changeAvatarBtn;
-    QPushButton *saveNickBtn;
-    QPushButton *payBtn;
-    QPushButton *logoutBtn;
+    QPushButton *editNickItemBtn;
+    QPushButton *rechargeItemBtn;
+    QPushButton *logoutItemBtn;
 
     void refreshProfile();
     void onChangeAvatar();
-    void selectLocalImage(); // 从相册选择
-    void openCameraCapture(); // 调起摄像头拍照
+    void selectLocalImage();
+    void openCameraCapture();
     void saveAvatarImage(const QImage &image);
-    
-    void onSaveNick();
-    void onPay();
+
+    // 弹窗逻辑
+    void openEditNicknameDialog();
+    void openRechargeDialog();
 };
 
 #endif // USERCENTERPAGE_H
