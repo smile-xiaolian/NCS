@@ -8,7 +8,16 @@ if(MSVC)
 else()
   add_compile_options(-Wall -Wextra)
 endif()
-find_package(Qt6 6.2 REQUIRED COMPONENTS Core Widgets Sql Charts WebEngineWidgets)
+find_package(Qt6 6.2 REQUIRED COMPONENTS 
+    Core 
+    Widgets 
+    Sql 
+    Charts 
+    WebEngineWidgets
+    Network 
+    Multimedia 
+    MultimediaWidgets
+)
 add_subdirectory(core)
 add_subdirectory(client_user)
 add_subdirectory(client_admin)

@@ -5,97 +5,114 @@
     <title>路线导航</title>
     <style>
         * { margin: 0; padding: 0; }
-        html, body { width: 100%; height: 100%; overflow: hidden; }
-        #container { width: 100%; height: 100vh; }
+        html, body, #container { width: 100%; height: 100%; overflow: hidden; }
     </style>
-    <!-- ⚠️ 请务必替换为新申请且额度充足的 Key -->
-    <script src="https://map.qq.com/api/gljs?v=1.exp&key=YOUR_NEW_TENCENT_KEY&libraries=service"></script>
+    <!-- 替换为腾讯地图 2D 版 JS API (v2.exp)，不需要 WebGL 支持，在 Linux 虚拟机下极度稳定 -->
+    <script src="https://map.qq.com/api/js?v=2.exp&key=VMNBZ-HQHE7-NH2XF-HGZCP-ZDC2T-FMFBU"></script>
 </head>
 <body>
 <div id="container"></div>
 <script>
     var map = null;
-    var currentPolyline = null;
     var markers = [];
+    var currentPolyline = null;
 
     function initMap() {
         try {
-            map = new TMap.Map('container', {
-                center: new TMap.LatLng(31.2304, 121.4737),
+            if (typeof qq === 'undefined' || typeof qq.maps === 'undefined') {
+                console.error("qq.maps SDK 未成功加载，请检查网络或 Key！");
+                return;
+            }
+            // 初始化 2D 地图
+            map = new qq.maps.Map(document.getElementById("container"), {
+                center: new qq.maps.LatLng(31.2304, 121.4737),
                 zoom: 12
             });
-            console.log("地图初始化成功！");
+            console.log("腾讯地图 2D 初始化成功！");
         } catch (e) {
-            console.error("地图初始化失败:", e);
+            console.error("地图初始化异常:", e);
         }
     }
 
+    // 绘制路线函数（由 C++ runJavaScript 调用）
     function renderRoute(startLat, startLng, endLat, endLng, mode) {
-        console.log("收到路线规划参数:", startLat, startLng, endLat, endLng, mode);
         if (!map) initMap();
-        if (!map) return;
+        if (!map || typeof qq === 'undefined') return;
 
-        // 清理旧标记
-        markers.forEach(function(m) { m.setMap(null); });
-        markers = [];
-        if (currentPolyline) {
-            currentPolyline.setMap(null);
-            currentPolyline = null;
-        }
-
-        var startLatLng = new TMap.LatLng(startLat, startLng);
-        var endLatLng = new TMap.LatLng(endLat, endLng);
-
-        var markerLayer = new TMap.MultiMarker({
-            id: 'marker-layer',
-            map: map,
-            geometries: [
-                { id: 'start', position: startLatLng },
-                { id: 'end', position: endLatLng }
-            ]
-        });
-        markers.push(markerLayer);
-
-        var bounds = new TMap.LatLngBounds();
-        bounds.extend(startLatLng);
-        bounds.extend(endLatLng);
-        map.fitBounds(bounds, { padding: 60 });
-
-        var routeService;
-        if (mode === 'walk') {
-            routeService = new TMap.service.Walking();
-        } else if (mode === 'bus') {
-            routeService = new TMap.service.Transit();
-        } else {
-            routeService = new TMap.service.Driving();
-        }
-
-        routeService.search({
-            from: startLatLng,
-            to: endLatLng
-        }).then(function (result) {
-            if (result.result && result.result.routes && result.result.routes.length > 0) {
-                var route = result.result.routes[0];
-                var path = (mode === 'bus') ? [] : route.polyline;
-                if (mode === 'bus') {
-                    route.steps.forEach(function(s) { if (s.path) path = path.concat(s.path); });
-                }
-
-                currentPolyline = new TMap.MultiPolyline({
-                    id: 'polyline-layer',
-                    map: map,
-                    styles: {
-                        'style_blue': new TMap.PolylineStyle({
-                            'color': '#3777FF',
-                            'width': 6
-                        })
-                    },
-                    geometries: [{ id: 'route', styleId: 'style_blue', paths: path }]
-                });
+        try {
+            // 清除旧的标记和折线
+            for (var i = 0; i < markers.length; i++) {
+                markers[i].setMap(null);
             }
-        }).catch(function (err) {
-            console.error("路线搜索失败:", err);
-        });
+            markers = [];
+            if (currentPolyline) {
+                currentPolyline.setMap(null);
+                currentPolyline = null;
+            }
+
+            var startLatLng = new qq.maps.LatLng(startLat, startLng);
+            var endLatLng = new qq.maps.LatLng(endLat, endLng);
+
+            // 标注起点与终点 Marker
+            var startMarker = new qq.maps.Marker({ position: startLatLng, map: map });
+            var endMarker = new qq.maps.Marker({ position: endLatLng, map: map });
+            markers.push(startMarker);
+            markers.push(endMarker);
+
+            // 自动调整地图视野包含起点和终点
+            var bounds = new qq.maps.LatLngBounds();
+            bounds.extend(startLatLng);
+            bounds.extend(endLatLng);
+            map.fitBounds(bounds);
+
+            // 根据出行方式调用腾讯地图 2D 路线规划 Service
+            var routeService;
+            var serviceCallback = {
+                complete: function (response) {
+                    if (response.detail.plans && response.detail.plans.length > 0) {
+                        var plan = response.detail.plans[0];
+                        var path = [];
+
+                        // 提取路线的坐标轨迹点
+                        if (mode === 'bus') {
+                            for (var i = 0; i < plan.actions.length; i++) {
+                                if (plan.actions[i].path) {
+                                    path = path.concat(plan.actions[i].path);
+                                }
+                            }
+                        } else {
+                            path = plan.path;
+                        }
+
+                        // 绘制路线折线
+                        currentPolyline = new qq.maps.Polyline({
+                            map: map,
+                            path: path,
+                            strokeColor: "#3777FF",
+                            strokeWeight: 6,
+                            strokeOpacity: 0.8
+                        });
+                    }
+                },
+                error: function (err) {
+                    console.error("路线规划失败:", err);
+                }
+            };
+
+            if (mode === 'walk') {
+                routeService = new qq.maps.TransferService(serviceCallback); // 2D 传输服务
+            } else if (mode === 'bus') {
+                routeService = new qq.maps.TransferService(serviceCallback);
+            } else {
+                routeService = new qq.maps.DrivingService(serviceCallback); // 驾车路线服务
+            }
+
+            // 发起路线检索
+            routeService.search(startLatLng, endLatLng);
+
+        } catch (err) {
+            console.error("renderRoute 异常:", err);
+        }
     }
 
     window.onload = initMap;

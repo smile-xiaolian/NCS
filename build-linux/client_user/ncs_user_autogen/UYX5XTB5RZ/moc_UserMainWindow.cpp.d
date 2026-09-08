@@ -346,6 +346,7 @@
   /usr/include/x86_64-linux-gnu/qt6/QtCore/qmargins.h \
   /usr/include/x86_64-linux-gnu/qt6/QtCore/qmath.h \
   /usr/include/x86_64-linux-gnu/qt6/QtCore/qmetacontainer.h \
+  /usr/include/x86_64-linux-gnu/qt6/QtCore/qmetaobject.h \
   /usr/include/x86_64-linux-gnu/qt6/QtCore/qmetatype.h \
   /usr/include/x86_64-linux-gnu/qt6/QtCore/qnamespace.h \
   /usr/include/x86_64-linux-gnu/qt6/QtCore/qnumeric.h \
@@ -425,6 +426,21 @@
   /usr/include/x86_64-linux-gnu/qt6/QtGui/qtransform.h \
   /usr/include/x86_64-linux-gnu/qt6/QtGui/qvalidator.h \
   /usr/include/x86_64-linux-gnu/qt6/QtGui/qwindowdefs.h \
+  /usr/include/x86_64-linux-gnu/qt6/QtMultimedia/QCamera \
+  /usr/include/x86_64-linux-gnu/qt6/QtMultimedia/QImageCapture \
+  /usr/include/x86_64-linux-gnu/qt6/QtMultimedia/QMediaCaptureSession \
+  /usr/include/x86_64-linux-gnu/qt6/QtMultimedia/qcamera.h \
+  /usr/include/x86_64-linux-gnu/qt6/QtMultimedia/qcameradevice.h \
+  /usr/include/x86_64-linux-gnu/qt6/QtMultimedia/qimagecapture.h \
+  /usr/include/x86_64-linux-gnu/qt6/QtMultimedia/qmediacapturesession.h \
+  /usr/include/x86_64-linux-gnu/qt6/QtMultimedia/qmediaenumdebug.h \
+  /usr/include/x86_64-linux-gnu/qt6/QtMultimedia/qtmultimedia-config.h \
+  /usr/include/x86_64-linux-gnu/qt6/QtMultimedia/qtmultimediaglobal.h \
+  /usr/include/x86_64-linux-gnu/qt6/QtMultimedia/qvideoframe.h \
+  /usr/include/x86_64-linux-gnu/qt6/QtMultimedia/qvideoframeformat.h \
+  /usr/include/x86_64-linux-gnu/qt6/QtMultimediaWidgets/QVideoWidget \
+  /usr/include/x86_64-linux-gnu/qt6/QtMultimediaWidgets/qtmultimediawidgetdefs.h \
+  /usr/include/x86_64-linux-gnu/qt6/QtMultimediaWidgets/qvideowidget.h \
   /usr/include/x86_64-linux-gnu/qt6/QtNetwork/QNetworkAccessManager \
   /usr/include/x86_64-linux-gnu/qt6/QtNetwork/QNetworkReply \
   /usr/include/x86_64-linux-gnu/qt6/QtNetwork/QNetworkRequest \
@@ -455,6 +471,7 @@
   /usr/include/x86_64-linux-gnu/qt6/QtWebEngineWidgets/qwebengineview.h \
   /usr/include/x86_64-linux-gnu/qt6/QtWidgets/QComboBox \
   /usr/include/x86_64-linux-gnu/qt6/QtWidgets/QCompleter \
+  /usr/include/x86_64-linux-gnu/qt6/QtWidgets/QDialog \
   /usr/include/x86_64-linux-gnu/qt6/QtWidgets/QHBoxLayout \
   /usr/include/x86_64-linux-gnu/qt6/QtWidgets/QLabel \
   /usr/include/x86_64-linux-gnu/qt6/QtWidgets/QLineEdit \
@@ -473,6 +490,7 @@
   /usr/include/x86_64-linux-gnu/qt6/QtWidgets/qboxlayout.h \
   /usr/include/x86_64-linux-gnu/qt6/QtWidgets/qcombobox.h \
   /usr/include/x86_64-linux-gnu/qt6/QtWidgets/qcompleter.h \
+  /usr/include/x86_64-linux-gnu/qt6/QtWidgets/qdialog.h \
   /usr/include/x86_64-linux-gnu/qt6/QtWidgets/qframe.h \
   /usr/include/x86_64-linux-gnu/qt6/QtWidgets/qgridlayout.h \
   /usr/include/x86_64-linux-gnu/qt6/QtWidgets/qlabel.h \

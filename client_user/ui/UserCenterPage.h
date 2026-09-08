@@ -5,6 +5,11 @@
 #include <QLabel>
 #include <QLineEdit>
 #include <QPushButton>
+#include <QCamera>
+#include <QMediaCaptureSession>
+#include <QImageCapture>
+#include <QVideoWidget>
+#include <QDialog>
 #include "core/models/User.h"
 
 class UserCenterPage : public QWidget
@@ -33,6 +38,10 @@ private:
 
     void refreshProfile();
     void onChangeAvatar();
+    void selectLocalImage(); // 从相册选择
+    void openCameraCapture(); // 调起摄像头拍照
+    void saveAvatarImage(const QImage &image);
+    
     void onSaveNick();
     void onPay();
 };

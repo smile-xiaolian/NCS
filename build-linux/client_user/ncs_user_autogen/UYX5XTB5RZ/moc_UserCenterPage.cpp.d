@@ -318,6 +318,7 @@
   /usr/include/x86_64-linux-gnu/qt6/QtCore/qmargins.h \
   /usr/include/x86_64-linux-gnu/qt6/QtCore/qmath.h \
   /usr/include/x86_64-linux-gnu/qt6/QtCore/qmetacontainer.h \
+  /usr/include/x86_64-linux-gnu/qt6/QtCore/qmetaobject.h \
   /usr/include/x86_64-linux-gnu/qt6/QtCore/qmetatype.h \
   /usr/include/x86_64-linux-gnu/qt6/QtCore/qnamespace.h \
   /usr/include/x86_64-linux-gnu/qt6/QtCore/qnumeric.h \
@@ -386,11 +387,28 @@
   /usr/include/x86_64-linux-gnu/qt6/QtGui/qtguiglobal.h \
   /usr/include/x86_64-linux-gnu/qt6/QtGui/qtransform.h \
   /usr/include/x86_64-linux-gnu/qt6/QtGui/qwindowdefs.h \
+  /usr/include/x86_64-linux-gnu/qt6/QtMultimedia/QCamera \
+  /usr/include/x86_64-linux-gnu/qt6/QtMultimedia/QImageCapture \
+  /usr/include/x86_64-linux-gnu/qt6/QtMultimedia/QMediaCaptureSession \
+  /usr/include/x86_64-linux-gnu/qt6/QtMultimedia/qcamera.h \
+  /usr/include/x86_64-linux-gnu/qt6/QtMultimedia/qcameradevice.h \
+  /usr/include/x86_64-linux-gnu/qt6/QtMultimedia/qimagecapture.h \
+  /usr/include/x86_64-linux-gnu/qt6/QtMultimedia/qmediacapturesession.h \
+  /usr/include/x86_64-linux-gnu/qt6/QtMultimedia/qmediaenumdebug.h \
+  /usr/include/x86_64-linux-gnu/qt6/QtMultimedia/qtmultimedia-config.h \
+  /usr/include/x86_64-linux-gnu/qt6/QtMultimedia/qtmultimediaglobal.h \
+  /usr/include/x86_64-linux-gnu/qt6/QtMultimedia/qvideoframe.h \
+  /usr/include/x86_64-linux-gnu/qt6/QtMultimedia/qvideoframeformat.h \
+  /usr/include/x86_64-linux-gnu/qt6/QtMultimediaWidgets/QVideoWidget \
+  /usr/include/x86_64-linux-gnu/qt6/QtMultimediaWidgets/qtmultimediawidgetdefs.h \
+  /usr/include/x86_64-linux-gnu/qt6/QtMultimediaWidgets/qvideowidget.h \
+  /usr/include/x86_64-linux-gnu/qt6/QtWidgets/QDialog \
   /usr/include/x86_64-linux-gnu/qt6/QtWidgets/QLabel \
   /usr/include/x86_64-linux-gnu/qt6/QtWidgets/QLineEdit \
   /usr/include/x86_64-linux-gnu/qt6/QtWidgets/QPushButton \
   /usr/include/x86_64-linux-gnu/qt6/QtWidgets/QWidget \
   /usr/include/x86_64-linux-gnu/qt6/QtWidgets/qabstractbutton.h \
+  /usr/include/x86_64-linux-gnu/qt6/QtWidgets/qdialog.h \
   /usr/include/x86_64-linux-gnu/qt6/QtWidgets/qframe.h \
   /usr/include/x86_64-linux-gnu/qt6/QtWidgets/qlabel.h \
   /usr/include/x86_64-linux-gnu/qt6/QtWidgets/qlineedit.h \
