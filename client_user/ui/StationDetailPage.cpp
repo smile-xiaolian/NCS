@@ -200,3 +200,4 @@ void StationDetailPage::onNavigate()
     auto s = PlatformService::station(currentStationId);
     emit navigateRequested(s["latitude"].toDouble(), s["longitude"].toDouble(), s["name"].toString());
 }
+

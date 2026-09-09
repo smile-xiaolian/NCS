@@ -129,7 +129,6 @@ SettlePage::SettlePage(QWidget *parent) : QWidget(parent)
     startChargingBtn->setStyleSheet(
         "QPushButton { background-color: #10b981; color: white; font-weight: 700; font-size: 14px; padding: 12px; border-radius: 10px; border: none; }"
         "QPushButton:hover { background-color: #059669; }"
-        "QPushButton:pressed { background-color: #047857; }"
         "QPushButton:disabled { background-color: #cbd5e1; color: #94a3b8; }"
     );
 
@@ -138,7 +137,6 @@ SettlePage::SettlePage(QWidget *parent) : QWidget(parent)
     settleOrderBtn->setStyleSheet(
         "QPushButton { background-color: #ef4444; color: white; font-weight: 700; font-size: 14px; padding: 12px; border-radius: 10px; border: none; }"
         "QPushButton:hover { background-color: #dc2626; }"
-        "QPushButton:pressed { background-color: #b91c1c; }"
     );
 
     backHomeBtn = new QPushButton(QStringLiteral("返回首页"));

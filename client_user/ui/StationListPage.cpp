@@ -299,3 +299,4 @@ void StationListPage::geocodeAddress(const QString &address)
         }
     });
 }
+

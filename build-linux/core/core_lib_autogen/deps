@@ -1,9 +1,0 @@
-core_lib_autogen/timestamp: \
-	/home/lan/projects/NCS/core/CMakeLists.txt \
-	/home/lan/projects/NCS/core/database/DatabaseManager.cpp \
-	/home/lan/projects/NCS/core/database/DatabaseManager.h \
-	/home/lan/projects/NCS/core/service/PlatformService.cpp \
-	/home/lan/projects/NCS/core/service/PlatformService.h \
-	/home/lan/projects/NCS/core/utils/Haversine.cpp \
-	/home/lan/projects/NCS/core/utils/Haversine.h \
-	/usr/bin/cmake

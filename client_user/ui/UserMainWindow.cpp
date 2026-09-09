@@ -157,8 +157,27 @@ UserMainWindow::UserMainWindow(QWidget *parent) : QWidget(parent)
 
 void UserMainWindow::updateNavStyle(int activeIndex)
 {
-    QString activeStyle = "background-color: #2b4c7e; color: white; border-radius: 6px; font-weight: bold; padding: 8px;";
-    QString normalStyle = "background-color: #f4f4f5; color: #606266; border-radius: 6px; padding: 8px;";
+    // 选中态：翠绿色 Pill 悬浮胶囊形状[cite: 5]
+    QString activeStyle = 
+        "QPushButton {"
+        "   background-color: #10b981;"
+        "   color: #ffffff;"
+        "   border-radius: 18px;"
+        "   font-weight: bold;"
+        "   padding: 8px 16px;"
+        "   border: none;"
+        "}";
+
+    // 未选中态：低调灰度文字[cite: 5]
+    QString normalStyle = 
+        "QPushButton {"
+        "   background-color: transparent;"
+        "   color: #64748b;"
+        "   border-radius: 18px;"
+        "   padding: 8px 16px;"
+        "   border: none;"
+        "}"
+        "QPushButton:hover { background-color: #f1f5f9; }";
 
     navHomeBtn->setStyleSheet(activeIndex == 1 ? activeStyle : normalStyle);
     navOrdersBtn->setStyleSheet(activeIndex == 4 ? activeStyle : normalStyle);

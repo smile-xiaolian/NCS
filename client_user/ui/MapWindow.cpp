@@ -45,27 +45,27 @@ MapWindow::MapWindow(QWidget *parent) : QWidget(parent)
     webView = new QWebEngineView(this);
 m_isPageLoaded = false;
 
-// 设置自定义 WebPage 捕获控制台日志[cite: 22]
+// 设置自定义 WebPage 捕获控制台日志
 webView->setPage(new CustomWebPage(webView));
 
-// 监听 HTML 加载状态[cite: 22]
+// 监听 HTML 加载状态
 connect(webView, &QWebEngineView::loadFinished, this, [this](bool ok) {
     if (ok) {
         m_isPageLoaded = true;
-        // 页面加载成功后再更新路线[cite: 22]
+        // 页面加载成功后再绘制路线
         updateMapRoute();
     } else {
         qWarning() << "错误：地图 HTML 页面加载失败！";
     }
 });
 
-// 使用 QFile 读取内嵌的资源文件文本
+// 读取内嵌资源文件，使用 setHtml 允许访问外部跨域 API
 QFile htmlFile(":/resources/map_template.html");
 if (htmlFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
     QString htmlContent = QString::fromUtf8(htmlFile.readAll());
     htmlFile.close();
     
-    // 使用 loadHtml 并指定 Base URL 为 https，确保腾讯地图 JS SDK 能正常访问外部网络
+    // 指定 Base URL 为 https://map.qq.com，保障腾讯地图 SDK 能正常跨域访问
     webView->setHtml(htmlContent, QUrl("https://map.qq.com"));
 } else {
     qWarning() << "无法读取资源文件 :/resources/map_template.html";
