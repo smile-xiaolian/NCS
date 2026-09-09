@@ -1,6 +1,0 @@
-<RCC>
-  <qresource prefix="/">
-    <file alias="db/schema.sql">/home/bit/NCS/core/db/schema.sql</file>
-  </qresource>
-</RCC>
-

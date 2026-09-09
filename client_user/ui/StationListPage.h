@@ -12,7 +12,12 @@
 #include <QCompleter>
 #include <QStringListModel>
 #include <QMap>
-#include <QEvent> // 
+#include <QEvent> 
+
+#include <QGraphicsOpacityEffect>
+#include <QPropertyAnimation>
+#include <QParallelAnimationGroup>
+#include <QSequentialAnimationGroup>
 
 class StationListPage : public QWidget
 {
@@ -55,6 +60,8 @@ private:
     void fetchAddressSuggestions(const QString &keyword);
     void geocodeAddress(const QString &address);
     QWidget* createStationCard(const QVariantMap &stationMap);
+    
+    void animateCardEntrance(); // 卡片进场动画
 };
 
 #endif // STATIONLISTPAGE_H

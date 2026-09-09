@@ -15,7 +15,8 @@
 <script>
     var map = null;
     var markers = [];
-    var currentService = null;
+    var currentPolyline = null;
+    var MAP_KEY = "VMNBZ-HQHE7-NH2XF-HGZCP-ZDC2T-FMFBU";
 
     function initMap() {
         try {
@@ -34,19 +35,29 @@
     }
 
     function clearOldOverlays() {
-        // 1. 清理旧 Marker
+        // 1. 清理 Marker
         for (var i = 0; i < markers.length; i++) {
             markers[i].setMap(null);
         }
         markers = [];
 
-        // 2. 清理旧 Service 图层
-        if (currentService && typeof currentService.clear === 'function') {
-            try {
-                currentService.clear();
-            } catch (e) {}
+        // 2. 清理路线折线
+        if (currentPolyline) {
+            currentPolyline.setMap(null);
+            currentPolyline = null;
         }
-        currentService = null;
+    }
+
+    // 格式化解析 WebService 返回的 coors 压缩坐标串
+    function parseCoors(coors) {
+        var pl = [];
+        for (var i = 2; i < coors.length; i++) {
+            coors[i] = coors[i - 2] + coors[i] / 1000000;
+        }
+        for (var j = 0; j < coors.length; j += 2) {
+            pl.push(new qq.maps.LatLng(coors[j], coors[j + 1]));
+        }
+        return pl;
     }
 
     function renderRoute(startLat, startLng, endLat, endLng, mode) {
@@ -54,55 +65,101 @@
         if (!map) initMap();
         if (!map || typeof qq === 'undefined' || typeof qq.maps === 'undefined') return;
 
-        // 防护拦截：如果终点坐标为 0,0，忽略检索
+        // 防护拦截：终点坐标无效 (0, 0) 时暂停
         if (endLat === 0 && endLng === 0) {
             console.warn("终点坐标无效 (0, 0)，暂停路线检索！");
             return;
         }
 
-        // 清理上一次的路线图层与标记
         clearOldOverlays();
 
         var startLatLng = new qq.maps.LatLng(startLat, startLng);
         var endLatLng = new qq.maps.LatLng(endLat, endLng);
 
-        // 添加起终点 Marker
+        // 添加起点与终点 Marker 标记
         var startMarker = new qq.maps.Marker({ position: startLatLng, map: map, title: "起点" });
         var endMarker = new qq.maps.Marker({ position: endLatLng, map: map, title: "终点" });
         markers.push(startMarker);
         markers.push(endMarker);
 
-        // 调整视野包含起终点
+        // 调整地图视野范围
         var bounds = new qq.maps.LatLngBounds();
         bounds.extend(startLatLng);
         bounds.extend(endLatLng);
         map.fitBounds(bounds);
 
-        try {
-            if (mode === 'walk') {
-                // 步行模式：使用 TransferService 不传 policy 参数，避免 undefined 异常
-                currentService = new qq.maps.TransferService({
-                    map: map
-                });
-                currentService.search(startLatLng, endLatLng);
-
-            } else if (mode === 'bus') {
-                // 公交模式：使用 TransferService
-                currentService = new qq.maps.TransferService({
-                    map: map
-                });
-                currentService.search(startLatLng, endLatLng);
-
-            } else {
-                // 驾车模式：使用 DrivingService
-                currentService = new qq.maps.DrivingService({
-                    map: map
-                });
-                currentService.search(startLatLng, endLatLng);
-            }
-        } catch (err) {
-            console.error("路线服务实例化捕获异常:", err);
+        // 映射 API 路线规划类型 (driving: 驾车, walking: 步行, transit: 公交)
+        var apiMode = "driving";
+        if (mode === 'walk') {
+            apiMode = "walking";
+        } else if (mode === 'bus') {
+            apiMode = "transit";
         }
+
+        // 使用 JSONP 跨域请求腾讯地图官方路线规划 WebService API
+        var scriptId = "jsonp_route_script";
+        var oldScript = document.getElementById(scriptId);
+        if (oldScript) oldScript.parentNode.removeChild(oldScript);
+
+        window.handleRouteResponse = function(res) {
+            if (res.status === 0 && res.result && res.result.routes && res.result.routes.length > 0) {
+                var route = res.result.routes[0];
+                var path = [];
+
+                if (apiMode === 'transit') {
+                    // 公交模式解析各步骤 line 轨迹
+                    if (route.steps) {
+                        for (var i = 0; i < route.steps.length; i++) {
+                            var step = route.steps[i];
+                            if (step.lines) {
+                                for (var j = 0; j < step.lines.length; j++) {
+                                    if (step.lines[j].polyline) {
+                                        path = path.concat(parseCoors(step.lines[j].polyline));
+                                    }
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    // 驾车 / 步行模式直接解析 polyline
+                    if (route.polyline) {
+                        path = parseCoors(route.polyline);
+                    }
+                }
+
+                // 若成功解析出轨迹点，绘制蓝色路线折线
+                if (path.length > 0) {
+                    currentPolyline = new qq.maps.Polyline({
+                        map: map,
+                        path: path,
+                        strokeColor: "#3875EA",
+                        strokeWeight: 6,
+                        strokeOpacity: 0.8
+                    });
+                    console.log("路线折线绘制成功，节点数:", path.length);
+                }
+            } else {
+                console.warn("WebService 未返回有效路线，回退绘制直达基路线:", res.message);
+                // 降级兜底：若跨城或无法规划，绘制起终点直线
+                currentPolyline = new qq.maps.Polyline({
+                    map: map,
+                    path: [startLatLng, endLatLng],
+                    strokeColor: "#3875EA",
+                    strokeWeight: 5,
+                    strokeOpacity: 0.6
+                });
+            }
+        };
+
+        var url = "https://apis.map.qq.com/ws/direction/v1/" + apiMode + "/?" +
+                  "from=" + startLat + "," + startLng +
+                  "&to=" + endLat + "," + endLng +
+                  "&output=jsonp&callback=handleRouteResponse&key=" + MAP_KEY;
+
+        var script = document.createElement("script");
+        script.id = scriptId;
+        script.src = url;
+        document.body.appendChild(script);
     }
 
     window.onload = initMap;

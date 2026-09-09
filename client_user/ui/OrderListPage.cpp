@@ -64,13 +64,14 @@ QWidget* OrderListPage::createOrderCard(const QVariantMap &m)
     double amount = m["amount"].toDouble();
     QString createdAt = m["created_at"].toString();
 
-    // 状态样式映射
+    // 状态色彩样式表映射[cite: 7]
     QString statusStr = "未知";
-    QString statusColor = "#94a3b8";
-    if (stVal == 0) { statusStr = "预约中"; statusColor = "#f59e0b"; }
-    else if (stVal == 1) { statusStr = "充电中"; statusColor = "#10b981"; }
-    else if (stVal == 2) { statusStr = "已完成"; statusColor = "#3b82f6"; }
-    else if (stVal == 3) { statusStr = "已取消"; statusColor = "#ef4444"; }
+    QString statusFg = "#64748b";
+    QString statusBg = "#f1f5f9";
+    if (stVal == 0)      { statusStr = "📌 预约中"; statusFg = "#d97706"; statusBg = "#fef3c7"; }
+    else if (stVal == 1) { statusStr = "⚡ 充电中"; statusFg = "#10b981"; statusBg = "#ecfdf5"; }
+    else if (stVal == 2) { statusStr = "已完成"; statusFg = "#3b82f6"; statusBg = "#eff6ff"; }
+    else if (stVal == 3) { statusStr = "已取消"; statusFg = "#ef4444"; statusBg = "#fef2f2"; }
 
     auto cardWidget = new QWidget();
     cardWidget->setCursor(Qt::PointingHandCursor);
@@ -78,33 +79,41 @@ QWidget* OrderListPage::createOrderCard(const QVariantMap &m)
         "QWidget {"
         "   background-color: #ffffff;"
         "   border: 1px solid #e2e8f0;"
-        "   border-radius: 12px;"
+        "   border-radius: 16px;"
         "}"
         "QWidget:hover {"
-        "   border-color: #3b82f6;"
-        "   background-color: #f8fafc;"
+        "   border-color: #10b981;"
         "}"
     );
 
     auto cardLayout = new QVBoxLayout(cardWidget);
-    cardLayout->setContentsMargins(15, 12, 15, 12);
-    cardLayout->setSpacing(6);
+    cardLayout->setContentsMargins(16, 14, 16, 14);
+    cardLayout->setSpacing(10);
 
-    // 顶部：电站名与状态
+    // 1. 顶部：站点与状态徽章[cite: 7]
     auto topLayout = new QHBoxLayout();
     auto nameLabel = new QLabel(stationName);
     nameLabel->setStyleSheet("font-size: 15px; font-weight: bold; color: #0f172a; border: none; background: transparent;");
 
-    auto statusLabel = new QLabel(QString("<font color='%1'>● <b>%2</b></font>").arg(statusColor, statusStr));
-    statusLabel->setStyleSheet("font-size: 13px; border: none; background: transparent;");
+    auto statusLabel = new QLabel(QString(" %1 ").arg(statusStr));
+    statusLabel->setStyleSheet(QString(
+        "font-size: 11px; font-weight: bold; color: %1; background-color: %2; "
+        "border-radius: 8px; padding: 3px 8px; border: none;"
+    ).arg(statusFg, statusBg));
 
     topLayout->addWidget(nameLabel, 1);
     topLayout->addWidget(statusLabel);
     cardLayout->addLayout(topLayout);
 
-    // 中部：枪号与时间
+    // 2. 细分割线[cite: 7]
+    auto line = new QFrame();
+    line->setFrameShape(QFrame::HLine);
+    line->setStyleSheet("color: #f8fafc;");
+    cardLayout->addWidget(line);
+
+    // 3. 中部：电桩编号与时间[cite: 7]
     auto midLayout = new QHBoxLayout();
-    auto codeLabel = new QLabel(QString("电桩：<b>%1</b>").arg(chargerCode));
+    auto codeLabel = new QLabel(QString("充电桩号：%1").arg(chargerCode));
     codeLabel->setStyleSheet("font-size: 12px; color: #64748b; border: none; background: transparent;");
 
     auto timeLabel = new QLabel(createdAt);
@@ -115,13 +124,13 @@ QWidget* OrderListPage::createOrderCard(const QVariantMap &m)
     midLayout->addWidget(timeLabel);
     cardLayout->addLayout(midLayout);
 
-    // 底部：电量与金额
+    // 4. 底部数据看板：用电量与金额[cite: 7]
     auto bottomLayout = new QHBoxLayout();
-    auto energyLabel = new QLabel(QString("用电量：<b>%1 kWh</b>").arg(energy, 0, 'f', 2));
-    energyLabel->setStyleSheet("font-size: 12px; color: #475569; border: none; background: transparent;");
+    auto energyLabel = new QLabel(QString("已充电量：<b>%1 kWh</b>").arg(energy, 0, 'f', 2));
+    energyLabel->setStyleSheet("font-size: 12px; color: #334155; border: none; background: transparent;");
 
-    auto amountLabel = new QLabel(QString("金额：<font color='#ef4444'><b>¥ %1</b></font>").arg(amount, 0, 'f', 2));
-    amountLabel->setStyleSheet("font-size: 14px; border: none; background: transparent;");
+    auto amountLabel = new QLabel(QString("¥ <font size='4'><b>%1</b></font>").arg(amount, 0, 'f', 2));
+    amountLabel->setStyleSheet("font-size: 13px; font-weight: bold; color: #0f172a; border: none; background: transparent;");
 
     bottomLayout->addWidget(energyLabel);
     bottomLayout->addStretch();

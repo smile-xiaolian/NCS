@@ -15,21 +15,21 @@ UserCenterPage::UserCenterPage(QWidget *parent) : QWidget(parent)
     setStyleSheet("background-color: #f8fafc; font-family: 'Microsoft YaHei', sans-serif;");
 
     auto mainLayout = new QVBoxLayout(this);
-    mainLayout->setContentsMargins(15, 20, 15, 20);
-    mainLayout->setSpacing(15);
+    mainLayout->setContentsMargins(16, 20, 16, 20);
+    mainLayout->setSpacing(16);
 
-    // 1. 顶部个人信息卡片
+    // 1. 顶部个人名片 Card
     auto profileCard = new QFrame();
     profileCard->setStyleSheet(
         "QFrame {"
         "   background-color: #ffffff;"
         "   border: 1px solid #e2e8f0;"
-        "   border-radius: 16px;"
+        "   border-radius: 20px;"
         "}"
     );
     auto profileLayout = new QVBoxLayout(profileCard);
     profileLayout->setContentsMargins(20, 20, 20, 20);
-    profileLayout->setSpacing(12);
+    profileLayout->setSpacing(16);
 
     auto topHeaderLayout = new QHBoxLayout();
     avatarLabel = new QLabel();
@@ -49,22 +49,21 @@ UserCenterPage::UserCenterPage(QWidget *parent) : QWidget(parent)
     topHeaderLayout->addSpacing(12);
     topHeaderLayout->addLayout(nameCol, 1);
 
-    changeAvatarBtn = new QPushButton("换头像");
+    changeAvatarBtn = new QPushButton("更换头像");
     changeAvatarBtn->setStyleSheet(
-        "QPushButton { background-color: #f1f5f9; color: #475569; font-size: 11px; border-radius: 12px; padding: 4px 10px; border: none; }"
+        "QPushButton { background-color: #f1f5f9; color: #475569; font-size: 11px; font-weight: bold; border-radius: 12px; padding: 6px 12px; border: none; }"
         "QPushButton:hover { background-color: #e2e8f0; }"
     );
     topHeaderLayout->addWidget(changeAvatarBtn, 0, Qt::AlignTop);
-
     profileLayout->addLayout(topHeaderLayout);
 
-    // 分隔线
+    // 灰色分割线
     auto line = new QFrame();
     line->setFrameShape(QFrame::HLine);
     line->setStyleSheet("color: #f1f5f9;");
     profileLayout->addWidget(line);
 
-    // 钱包与状态
+    // 账户资产仪表板（余额与状态）
     auto walletLayout = new QHBoxLayout();
     balanceLabel = new QLabel();
     balanceLabel->setStyleSheet("font-size: 13px; color: #334155; border: none; background: transparent;");
@@ -79,21 +78,21 @@ UserCenterPage::UserCenterPage(QWidget *parent) : QWidget(parent)
 
     mainLayout->addWidget(profileCard);
 
-    // 2. 仿手机 App 列表组件卡片
+    // 2. 仿 App 设置菜单项组
     auto menuCard = new QFrame();
     menuCard->setStyleSheet(
         "QFrame {"
         "   background-color: #ffffff;"
         "   border: 1px solid #e2e8f0;"
-        "   border-radius: 16px;"
+        "   border-radius: 20px;"
         "}"
     );
     auto menuLayout = new QVBoxLayout(menuCard);
-    menuLayout->setContentsMargins(0, 5, 0, 5);
+    menuLayout->setContentsMargins(0, 4, 0, 4);
     menuLayout->setSpacing(0);
 
-    auto createMenuItem = [](const QString &text, const QString &color = "#0f172a") -> QPushButton* {
-        auto btn = new QPushButton(text + "   ›");
+    auto createMenuItem = [](const QString &iconAndTitle, const QString &textColor = "#0f172a") -> QPushButton* {
+        auto btn = new QPushButton(iconAndTitle + "   ›");
         btn->setStyleSheet(QString(
             "QPushButton {"
             "   text-align: left;"
@@ -106,22 +105,22 @@ UserCenterPage::UserCenterPage(QWidget *parent) : QWidget(parent)
             "}"
             "QPushButton:hover { background-color: #f8fafc; }"
             "QPushButton:pressed { background-color: #f1f5f9; }"
-        ).arg(color));
+        ).arg(textColor));
         return btn;
     };
 
-    editNickItemBtn = createMenuItem("✏️   修改昵称");
-    rechargeItemBtn = createMenuItem("💳   账户充值（含欠费补缴）");
-    logoutItemBtn = createMenuItem("🚪   退出登录", "#ef4444");
+    editNickItemBtn = createMenuItem("✏️   修改用户昵称");
+    rechargeItemBtn = createMenuItem("💳   账户充值与欠费补缴");
+    logoutItemBtn   = createMenuItem("🚪   退出登录账号", "#ef4444");
 
     menuLayout->addWidget(editNickItemBtn);
     
-    auto line1 = new QFrame(); line1->setFrameShape(QFrame::HLine); line1->setStyleSheet("color: #f1f5f9;");
+    auto line1 = new QFrame(); line1->setFrameShape(QFrame::HLine); line1->setStyleSheet("color: #f8fafc;");
     menuLayout->addWidget(line1);
 
     menuLayout->addWidget(rechargeItemBtn);
 
-    auto line2 = new QFrame(); line2->setFrameShape(QFrame::HLine); line2->setStyleSheet("color: #f1f5f9;");
+    auto line2 = new QFrame(); line2->setFrameShape(QFrame::HLine); line2->setStyleSheet("color: #f8fafc;");
     menuLayout->addWidget(line2);
 
     menuLayout->addWidget(logoutItemBtn);
@@ -129,7 +128,7 @@ UserCenterPage::UserCenterPage(QWidget *parent) : QWidget(parent)
     mainLayout->addWidget(menuCard);
     mainLayout->addStretch();
 
-    // 信号槽连接
+    // 绑定信号槽
     connect(changeAvatarBtn, &QPushButton::clicked, this, &UserCenterPage::onChangeAvatar);
     connect(editNickItemBtn, &QPushButton::clicked, this, &UserCenterPage::openEditNicknameDialog);
     connect(rechargeItemBtn, &QPushButton::clicked, this, &UserCenterPage::openRechargeDialog);
@@ -163,47 +162,65 @@ void UserCenterPage::refreshProfile()
     }
 }
 
-// 弹出手机端风格“修改昵称”对话框
+// 弹出现代圆角“修改昵称”对话框
 void UserCenterPage::openEditNicknameDialog()
 {
-    QDialog dlg(this);
-    dlg.setWindowTitle("修改昵称");
-    dlg.setFixedSize(300, 180);
-    dlg.setStyleSheet("background-color: #ffffff;");
+    auto dlg = new QDialog(this);
+    dlg->setWindowTitle("修改昵称");
+    dlg->setFixedSize(300, 190);
+    dlg->setStyleSheet("QDialog { background-color: #ffffff; border-radius: 16px; }");
 
-    auto layout = new QVBoxLayout(&dlg);
+    auto layout = new QVBoxLayout(dlg);
     layout->setContentsMargins(20, 20, 20, 20);
-    layout->setSpacing(15);
+    layout->setSpacing(14);
 
-    auto title = new QLabel("请输入新的昵称：", &dlg);
-    title->setStyleSheet("font-size: 13px; font-weight: bold; color: #1e293b;");
+    auto title = new QLabel("设置新的用户昵称", dlg);
+    title->setStyleSheet("font-size: 15px; font-weight: bold; color: #0f172a;");
     
-    auto input = new QLineEdit(&dlg);
+    auto input = new QLineEdit(dlg);
     input->setText(u.nickname);
-    input->setStyleSheet("padding: 8px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px;");
+    input->setStyleSheet(
+        "QLineEdit { padding: 9px; border: 1.5px solid #e2e8f0; border-radius: 10px; font-size: 13px; background: #f8fafc; }"
+        "QLineEdit:focus { border-color: #10b981; background: #ffffff; }"
+    );
 
-    auto saveBtn = new QPushButton("确认保存", &dlg);
-    saveBtn->setStyleSheet("background-color: #3b82f6; color: white; font-weight: bold; padding: 9px; border-radius: 6px; border: none;");
+    auto saveBtn = new QPushButton("确认保存", dlg);
+    saveBtn->setCursor(Qt::PointingHandCursor);
+    saveBtn->setStyleSheet(
+        "QPushButton { background-color: #10b981; color: white; font-weight: bold; padding: 10px; border-radius: 10px; border: none; }"
+        "QPushButton:hover { background-color: #059669; }"
+    );
 
     layout->addWidget(title);
     layout->addWidget(input);
     layout->addWidget(saveBtn);
 
-    connect(saveBtn, &QPushButton::clicked, &dlg, [&]() {
+    connect(saveBtn, &QPushButton::clicked, dlg, [&, dlg, input]() {
         QString newNick = input->text().trimmed();
         QString errorMsg;
         if (PlatformService::updateNickname(u.id, newNick, &errorMsg)) {
             u = PlatformService::loginOrRegister(u.phone);
             refreshProfile();
             emit userUpdated(u);
-            QMessageBox::information(&dlg, "提示", "昵称修改成功！");
-            dlg.accept();
+            QMessageBox::information(dlg, "提示", "昵称修改成功！");
+            dlg->accept();
         } else {
-            QMessageBox::warning(&dlg, "提示", errorMsg);
+            QMessageBox::warning(dlg, "提示", errorMsg);
         }
     });
 
-    dlg.exec();
+    // --- 增加弹窗平滑放大进场动画 ---[cite: 9]
+    dlg->show();
+    auto anim = new QPropertyAnimation(dlg, "geometry");
+    anim->setDuration(250);
+    QRect startRect = dlg->geometry();
+    // 从中心缩小状态放大[cite: 9]
+    anim->setStartValue(QRect(startRect.x() + 20, startRect.y() + 20, startRect.width() - 40, startRect.height() - 40));
+    anim->setEndValue(startRect);
+    anim->setEasingCurve(QEasingCurve::OutBack); // 带有些许灵动回弹效果[cite: 9]
+    anim->start(QAbstractAnimation::DeleteWhenStopped);
+
+    dlg->exec();
 }
 
 // 弹出手机端风格“账户充值”对话框
