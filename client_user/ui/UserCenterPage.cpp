@@ -1,4 +1,7 @@
 #include "UserCenterPage.h"
+#include <QAbstractAnimation>
+#include <QPropertyAnimation>
+#include <QEasingCurve>
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QScrollArea>
