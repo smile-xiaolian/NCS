@@ -3,6 +3,7 @@
 #include <QDialog>
 #include <QDialogButtonBox>
 #include <QSpinBox>
+#include <QColor>
 #include <QFormLayout>
 #include <QHBoxLayout>
 #include <QHeaderView>
@@ -16,6 +17,7 @@
 
 #include "core/service/PlatformService.h"
 #include "FormatUtil.h"
+#include "UiKit.h"
 
 namespace {
 
@@ -24,9 +26,14 @@ void setupTable(QTableWidget *table, const QStringList &headers)
     table->setColumnCount(headers.size());
     table->setHorizontalHeaderLabels(headers);
     table->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
+    table->horizontalHeader()->setMinimumHeight(42);
     table->setSelectionBehavior(QAbstractItemView::SelectRows);
     table->setSelectionMode(QAbstractItemView::SingleSelection);
     table->setEditTriggers(QAbstractItemView::NoEditTriggers);
+    table->setShowGrid(false);
+    table->setAlternatingRowColors(true);
+    table->verticalHeader()->setVisible(false);
+    table->verticalHeader()->setDefaultSectionSize(40);
 }
 
 } // namespace
@@ -75,6 +82,8 @@ public:
         connect(buttons, &QDialogButtonBox::accepted, this, &QDialog::accept);
         connect(buttons, &QDialogButtonBox::rejected, this, &QDialog::reject);
         form->addRow(buttons);
+        resize(740, 620);
+        setMinimumSize(640, 500);
     }
 
     QString name() const { return mNameEdit->text().trimmed(); }
@@ -95,42 +104,46 @@ StationManagePage::StationManagePage(QWidget *parent)
     : QWidget(parent)
 {
     auto *root = new QVBoxLayout(this);
-    auto *title = new QLabel(QStringLiteral("<h2>充电站管理</h2>"));
-    root->addWidget(title);
-
-    auto *toolbar = new QHBoxLayout;
-    auto *addButton = new QPushButton(QStringLiteral("新增充电站"));
-    auto *editButton = new QPushButton(QStringLiteral("编辑"));
-    auto *removeButton = new QPushButton(QStringLiteral("删除"));
-    auto *refreshButton = new QPushButton(QStringLiteral("刷新"));
-    auto *hint = new QLabel(QStringLiteral("提示：选中上方电站后，下方联动显示其电桩明细"));
-    hint->setStyleSheet(QStringLiteral("color:#8b949e;"));
-    for (auto *button : {addButton, editButton, removeButton, refreshButton}) {
-        toolbar->addWidget(button);
-    }
-    toolbar->addWidget(hint);
-    toolbar->addStretch(1);
-    root->addLayout(toolbar);
+    root->setContentsMargins(0, 0, 0, 0);
+    root->setSpacing(14);
+    root->addWidget(ncs::pageHeading(QStringLiteral("充电站管理"),
+                                     QStringLiteral("维护站点基础信息,并联动查看站内电桩")));
 
     auto *splitter = new QSplitter(Qt::Vertical);
+    splitter->setChildrenCollapsible(false);
+    splitter->setHandleWidth(12);
+
+    const ncs::Panel stationPanel =
+        ncs::titledPanel(QStringLiteral("充电站列表"), this,
+                         QStringLiteral("选中电站后下方联动显示其电桩明细"));
+
+    auto *addButton = new QPushButton(QStringLiteral("新增充电站"));
+    addButton->setObjectName(QStringLiteral("accent"));
+    auto *editButton = new QPushButton(QStringLiteral("编辑"));
+    auto *removeButton = new QPushButton(QStringLiteral("删除"));
+    removeButton->setObjectName(QStringLiteral("danger"));
+    auto *refreshButton = new QPushButton(QStringLiteral("刷新"));
+    for (auto *button : {addButton, editButton, removeButton, refreshButton}) {
+        stationPanel.header->addWidget(button);
+    }
+
     mStationTable = new QTableWidget;
     setupTable(mStationTable, {QStringLiteral("充电站"), QStringLiteral("地址"),
                                QStringLiteral("单价（元/度）"), QStringLiteral("经度"),
                                QStringLiteral("纬度"), QStringLiteral("桩总数"),
                                QStringLiteral("空闲桩")});
-    splitter->addWidget(mStationTable);
+    stationPanel.body->addWidget(mStationTable, 1);
+    splitter->addWidget(stationPanel.card);
 
-    auto *detailBox = new QWidget;
-    auto *detailLayout = new QVBoxLayout(detailBox);
-    mDetailTitle = new QLabel(QStringLiteral("电桩明细：请选择充电站"));
-    mDetailTitle->setStyleSheet(QStringLiteral("font-weight:bold;"));
+    const ncs::Panel detailPanel =
+        ncs::titledPanel(QStringLiteral("电桩明细"), this);
+    mDetailTitle = detailPanel.title;
     mChargerTable = new QTableWidget;
     setupTable(mChargerTable, {QStringLiteral("桩编号"), QStringLiteral("类型"),
                                QStringLiteral("功率（kW）"), QStringLiteral("状态"),
                                QStringLiteral("累计充电次数"), QStringLiteral("累计时长（分）")});
-    detailLayout->addWidget(mDetailTitle);
-    detailLayout->addWidget(mChargerTable, 1);
-    splitter->addWidget(detailBox);
+    detailPanel.body->addWidget(mChargerTable, 1);
+    splitter->addWidget(detailPanel.card);
 
     splitter->setStretchFactor(0, 3);
     splitter->setStretchFactor(1, 2);
@@ -178,13 +191,15 @@ void StationManagePage::fillStationTable()
             ncs::number(station.value(QStringLiteral("latitude")).toDouble(), 6)));
         mStationTable->setItem(row, 5, new QTableWidgetItem(
             QString::number(detail.value(QStringLiteral("total")).toInt())));
-        mStationTable->setItem(row, 6, new QTableWidgetItem(
-            QString::number(detail.value(QStringLiteral("idle")).toInt())));
+        QTableWidgetItem *idleItem = new QTableWidgetItem(
+            QString::number(detail.value(QStringLiteral("idle")).toInt()));
+        idleItem->setForeground(QColor(QStringLiteral("#1E9E62")));
+        mStationTable->setItem(row, 6, idleItem);
         ++row;
     }
 
     if (stations.isEmpty()) {
-        mDetailTitle->setText(QStringLiteral("电桩明细：暂无充电站"));
+        mDetailTitle->setText(QStringLiteral("暂无充电站"));
         mChargerTable->clearContents();
         mChargerTable->setRowCount(0);
     } else {
@@ -196,7 +211,7 @@ void StationManagePage::fillStationTable()
 void StationManagePage::updateChargerDetail(int stationRow)
 {
     if (stationRow < 0 || !mStationTable->item(stationRow, 0)) {
-        mDetailTitle->setText(QStringLiteral("电桩明细：请选择充电站"));
+        mDetailTitle->setText(QStringLiteral("请选择充电站"));
         mChargerTable->clearContents();
         mChargerTable->setRowCount(0);
         return;
@@ -217,8 +232,18 @@ void StationManagePage::updateChargerDetail(int stationRow)
             charger.value(QStringLiteral("type")).toString()));
         mChargerTable->setItem(row, 2, new QTableWidgetItem(
             ncs::number(charger.value(QStringLiteral("power")).toDouble(), 1)));
-        mChargerTable->setItem(row, 3, new QTableWidgetItem(
-            ncs::chargerStatusText(charger.value(QStringLiteral("status")).toInt())));
+        const int status = charger.value(QStringLiteral("status")).toInt();
+        QTableWidgetItem *statusItem = new QTableWidgetItem(
+            ncs::chargerStatusText(status));
+        QColor statusColor(QStringLiteral("#8A94A6"));
+        switch (status) {
+        case 0: statusColor = QColor(QStringLiteral("#1E9E62")); break;
+        case 1: statusColor = QColor(QStringLiteral("#E8890C")); break;
+        case 2: statusColor = QColor(QStringLiteral("#D64545")); break;
+        default: break;
+        }
+        statusItem->setForeground(statusColor);
+        mChargerTable->setItem(row, 3, statusItem);
         mChargerTable->setItem(row, 4, new QTableWidgetItem(
             QString::number(charger.value(QStringLiteral("total_count")).toInt())));
         mChargerTable->setItem(row, 5, new QTableWidgetItem(
@@ -241,13 +266,14 @@ QVariantMap StationManagePage::selectedStation() const
 
 void StationManagePage::showNoSelection() const
 {
-    QMessageBox::information(const_cast<StationManagePage *>(this),
-                             QStringLiteral("提示"), QStringLiteral("请先在表格中选择一行"));
+    ncs::info(const_cast<StationManagePage *>(this),
+              QStringLiteral("提示"), QStringLiteral("请先在表格中选择一行"));
 }
 
 void StationManagePage::addStation()
 {
     StationEditDialog dialog({}, this);
+    ncs::fitToScreen(&dialog, this);
     if (dialog.exec() != QDialog::Accepted) {
         return;
     }
@@ -255,7 +281,7 @@ void StationManagePage::addStation()
     if (!PlatformService::saveStation(0, dialog.name(), dialog.address(),
                                       dialog.longitude(), dialog.latitude(),
                                       dialog.price(), &error)) {
-        QMessageBox::warning(this, QStringLiteral("新增失败"), error);
+        ncs::warning(this, QStringLiteral("新增失败"), error);
         return;
     }
     refresh();
@@ -269,6 +295,7 @@ void StationManagePage::editStation()
         return;
     }
     StationEditDialog dialog(station, this);
+    ncs::fitToScreen(&dialog, this);
     if (dialog.exec() != QDialog::Accepted) {
         return;
     }
@@ -277,7 +304,7 @@ void StationManagePage::editStation()
                                       dialog.name(), dialog.address(),
                                       dialog.longitude(), dialog.latitude(),
                                       dialog.price(), &error)) {
-        QMessageBox::warning(this, QStringLiteral("保存失败"), error);
+        ncs::warning(this, QStringLiteral("保存失败"), error);
         return;
     }
     refresh();
@@ -291,15 +318,14 @@ void StationManagePage::removeStation()
         return;
     }
     const QString name = station.value(QStringLiteral("name")).toString();
-    if (QMessageBox::question(this, QStringLiteral("删除确认"),
-                              QStringLiteral("确定删除充电站 %1 吗？").arg(name)) !=
-        QMessageBox::Yes) {
+    if (!ncs::confirm(this, QStringLiteral("删除确认"),
+                      QStringLiteral("确定删除充电站 %1 吗？").arg(name))) {
         return;
     }
     QString error;
     if (!PlatformService::deleteStation(station.value(QStringLiteral("id")).toInt(),
                                         &error)) {
-        QMessageBox::warning(this, QStringLiteral("删除失败"), error);
+        ncs::warning(this, QStringLiteral("删除失败"), error);
         return;
     }
     refresh();

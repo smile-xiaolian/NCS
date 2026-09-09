@@ -1,6 +1,7 @@
 #include "ChargerManagePage.h"
 
 #include <QComboBox>
+#include <QColor>
 #include <QDialog>
 #include <QDialogButtonBox>
 #include <QDoubleSpinBox>
@@ -17,7 +18,9 @@
 #include <QVBoxLayout>
 
 #include "core/service/PlatformService.h"
+#include "DeviceLinkHook.h"
 #include "FormatUtil.h"
+#include "UiKit.h"
 
 namespace {
 
@@ -26,9 +29,14 @@ void setupTable(QTableWidget *table, const QStringList &headers)
     table->setColumnCount(headers.size());
     table->setHorizontalHeaderLabels(headers);
     table->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
+    table->horizontalHeader()->setMinimumHeight(42);
     table->setSelectionBehavior(QAbstractItemView::SelectRows);
     table->setSelectionMode(QAbstractItemView::SingleSelection);
     table->setEditTriggers(QAbstractItemView::NoEditTriggers);
+    table->setShowGrid(false);
+    table->setAlternatingRowColors(true);
+    table->verticalHeader()->setVisible(false);
+    table->verticalHeader()->setDefaultSectionSize(40);
 }
 
 void fillStationCombo(QComboBox *combo, const QVariantList &stations,
@@ -89,6 +97,8 @@ public:
         connect(buttons, &QDialogButtonBox::accepted, this, &QDialog::accept);
         connect(buttons, &QDialogButtonBox::rejected, this, &QDialog::reject);
         form->addRow(buttons);
+        resize(760, 560);
+        setMinimumSize(640, 460);
     }
 
     int stationId() const { return mStationCombo->currentData().toInt(); }
@@ -138,7 +148,7 @@ public:
         form->addRow(QStringLiteral("数量："), mCountSpin);
 
         auto *hint = new QLabel(QStringLiteral("编号将自动生成：前缀 + 3 位序号（如 P001）。"));
-        hint->setStyleSheet(QStringLiteral("color:#8b949e;"));
+        hint->setObjectName(QStringLiteral("panelSub"));
         form->addRow(hint);
 
         auto *buttons = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel);
@@ -147,6 +157,8 @@ public:
         connect(buttons, &QDialogButtonBox::accepted, this, &QDialog::accept);
         connect(buttons, &QDialogButtonBox::rejected, this, &QDialog::reject);
         form->addRow(buttons);
+        resize(760, 640);
+        setMinimumSize(640, 520);
     }
 
     int stationId() const { return mStationCombo->currentData().toInt(); }
@@ -167,41 +179,52 @@ ChargerManagePage::ChargerManagePage(QWidget *parent)
     : QWidget(parent)
 {
     auto *root = new QVBoxLayout(this);
-    auto *title = new QLabel(QStringLiteral("<h2>充电桩管理</h2>"));
-    root->addWidget(title);
+    root->setContentsMargins(0, 0, 0, 0);
+    root->setSpacing(14);
+    root->addWidget(ncs::pageHeading(QStringLiteral("充电桩管理"),
+                                     QStringLiteral("统一维护电站桩资源,支持批量建桩与远程重启")));
 
-    auto *toolbar = new QHBoxLayout;
-    toolbar->addWidget(new QLabel(QStringLiteral("所属电站：")));
+    const ncs::Panel panel =
+        ncs::titledPanel(QStringLiteral("充电桩列表"), this, QStringLiteral("实时台账"));
+
     mStationFilter = new QComboBox;
     mStationFilter->setMinimumWidth(180);
-    toolbar->addWidget(mStationFilter);
-    toolbar->addSpacing(8);
-    toolbar->addWidget(new QLabel(QStringLiteral("状态：")));
     mStatusFilter = new QComboBox;
     mStatusFilter->addItems({QStringLiteral("全部状态"), QStringLiteral("空闲"),
                              QStringLiteral("使用中"), QStringLiteral("故障")});
-    toolbar->addWidget(mStatusFilter);
-    toolbar->addSpacing(16);
+
+    auto *stationCaption = new QLabel(QStringLiteral("所属电站"), panel.card);
+    stationCaption->setObjectName(QStringLiteral("filterLabel"));
+    auto *statusCaption = new QLabel(QStringLiteral("状态"), panel.card);
+    statusCaption->setObjectName(QStringLiteral("filterLabel"));
+    panel.header->addWidget(stationCaption);
+    panel.header->addWidget(mStationFilter);
+    panel.header->addSpacing(12);
+    panel.header->addWidget(statusCaption);
+    panel.header->addWidget(mStatusFilter);
+    panel.header->addSpacing(14);
 
     auto *addButton = new QPushButton(QStringLiteral("新增充电桩"));
     auto *batchButton = new QPushButton(QStringLiteral("批量建桩"));
+    addButton->setObjectName(QStringLiteral("accent"));
+    batchButton->setObjectName(QStringLiteral("accent"));
     auto *editButton = new QPushButton(QStringLiteral("编辑"));
     auto *removeButton = new QPushButton(QStringLiteral("删除"));
+    removeButton->setObjectName(QStringLiteral("danger"));
     auto *restartButton = new QPushButton(QStringLiteral("远程重启"));
     auto *refreshButton = new QPushButton(QStringLiteral("刷新"));
     for (auto *button : {addButton, batchButton, editButton, removeButton,
                          restartButton, refreshButton}) {
-        toolbar->addWidget(button);
+        panel.header->addWidget(button);
     }
-    toolbar->addStretch(1);
-    root->addLayout(toolbar);
 
     mTable = new QTableWidget;
     setupTable(mTable, {QStringLiteral("桩编号"), QStringLiteral("所属电站"),
                         QStringLiteral("类型"), QStringLiteral("功率（kW）"),
                         QStringLiteral("状态"), QStringLiteral("累计充电次数"),
                         QStringLiteral("累计时长（分）")});
-    root->addWidget(mTable, 1);
+    panel.body->addWidget(mTable, 1);
+    root->addWidget(panel.card, 1);
 
     connect(mStationFilter, &QComboBox::currentIndexChanged, this,
             [this](int) { fillTable(); });
@@ -266,7 +289,16 @@ void ChargerManagePage::fillTable()
             charger.value(QStringLiteral("type")).toString()));
         mTable->setItem(row, 3, new QTableWidgetItem(
             ncs::number(charger.value(QStringLiteral("power")).toDouble(), 1)));
-        mTable->setItem(row, 4, new QTableWidgetItem(statusText));
+        QTableWidgetItem *statusItem = new QTableWidgetItem(statusText);
+        QColor statusColor(QStringLiteral("#8A94A6"));
+        switch (status) {
+        case 0: statusColor = QColor(QStringLiteral("#1E9E62")); break;
+        case 1: statusColor = QColor(QStringLiteral("#E8890C")); break;
+        case 2: statusColor = QColor(QStringLiteral("#D64545")); break;
+        default: break;
+        }
+        statusItem->setForeground(statusColor);
+        mTable->setItem(row, 4, statusItem);
         mTable->setItem(row, 5, new QTableWidgetItem(
             QString::number(charger.value(QStringLiteral("total_count")).toInt())));
         mTable->setItem(row, 6, new QTableWidgetItem(
@@ -286,20 +318,21 @@ QVariantMap ChargerManagePage::selectedCharger() const
 
 void ChargerManagePage::showNoSelection() const
 {
-    QMessageBox::information(const_cast<ChargerManagePage *>(this),
-                             QStringLiteral("提示"), QStringLiteral("请先在表格中选择一行"));
+    ncs::info(const_cast<ChargerManagePage *>(this),
+              QStringLiteral("提示"), QStringLiteral("请先在表格中选择一行"));
 }
 
 void ChargerManagePage::addCharger()
 {
     ChargerEditDialog dialog(PlatformService::stations(), {}, this);
+    ncs::fitToScreen(&dialog, this);
     if (dialog.exec() != QDialog::Accepted) {
         return;
     }
     QString error;
     if (!PlatformService::saveCharger(0, dialog.stationId(), dialog.code(),
                                       dialog.type(), dialog.power(), &error)) {
-        QMessageBox::warning(this, QStringLiteral("新增失败"), error);
+        ncs::warning(this, QStringLiteral("新增失败"), error);
         return;
     }
     refresh();
@@ -308,13 +341,14 @@ void ChargerManagePage::addCharger()
 void ChargerManagePage::addChargersInBatch()
 {
     BatchChargerDialog dialog(PlatformService::stations(), this);
+    ncs::fitToScreen(&dialog, this);
     if (dialog.exec() != QDialog::Accepted) {
         return;
     }
     const QString prefix = dialog.prefix();
     if (prefix.isEmpty()) {
-        QMessageBox::warning(this, QStringLiteral("提示"),
-                             QStringLiteral("请填写编号前缀"));
+        ncs::warning(this, QStringLiteral("提示"),
+                     QStringLiteral("请填写编号前缀"));
         return;
     }
     int success = 0;
@@ -335,7 +369,7 @@ void ChargerManagePage::addChargersInBatch()
         message += QStringLiteral("\n失败 %1 台（编号已存在等）：\n").arg(failed.size()) +
                    failed.first();
     }
-    QMessageBox::information(this, QStringLiteral("批量建桩"), message);
+    ncs::info(this, QStringLiteral("批量建桩"), message);
     refresh();
 }
 
@@ -347,6 +381,7 @@ void ChargerManagePage::editCharger()
         return;
     }
     ChargerEditDialog dialog(PlatformService::stations(), charger, this);
+    ncs::fitToScreen(&dialog, this);
     if (dialog.exec() != QDialog::Accepted) {
         return;
     }
@@ -354,7 +389,7 @@ void ChargerManagePage::editCharger()
     if (!PlatformService::saveCharger(charger.value(QStringLiteral("id")).toInt(),
                                       dialog.stationId(), dialog.code(),
                                       dialog.type(), dialog.power(), &error)) {
-        QMessageBox::warning(this, QStringLiteral("保存失败"), error);
+        ncs::warning(this, QStringLiteral("保存失败"), error);
         return;
     }
     refresh();
@@ -368,15 +403,14 @@ void ChargerManagePage::removeCharger()
         return;
     }
     const QString code = charger.value(QStringLiteral("code")).toString();
-    if (QMessageBox::question(this, QStringLiteral("删除确认"),
-                              QStringLiteral("确定删除充电桩 %1 吗？").arg(code)) !=
-        QMessageBox::Yes) {
+    if (!ncs::confirm(this, QStringLiteral("删除确认"),
+                      QStringLiteral("确定删除充电桩 %1 吗？").arg(code))) {
         return;
     }
     QString error;
     if (!PlatformService::deleteCharger(
             charger.value(QStringLiteral("id")).toInt(), &error)) {
-        QMessageBox::warning(this, QStringLiteral("删除失败"), error);
+        ncs::warning(this, QStringLiteral("删除失败"), error);
         return;
     }
     refresh();
@@ -390,19 +424,21 @@ void ChargerManagePage::restartCharger()
         return;
     }
     const QString code = charger.value(QStringLiteral("code")).toString();
-    if (QMessageBox::question(this, QStringLiteral("远程重启确认"),
-                              QStringLiteral("确定远程重启充电桩 %1 吗？"
-                                             "重启后故障桩将恢复正常。").arg(code)) !=
-        QMessageBox::Yes) {
+    if (!ncs::confirm(this, QStringLiteral("远程重启确认"),
+                      QStringLiteral("确定远程重启充电桩 %1 吗？"
+                                     "重启后故障桩将恢复正常。").arg(code))) {
         return;
     }
     QString error;
     if (!PlatformService::restartCharger(
             charger.value(QStringLiteral("id")).toInt(), &error)) {
-        QMessageBox::warning(this, QStringLiteral("重启失败"), error);
+        ncs::warning(this, QStringLiteral("重启失败"), error);
         return;
     }
-    QMessageBox::information(this, QStringLiteral("远程重启"),
-                             QStringLiteral("充电桩 %1 已重启并恢复正常").arg(code));
+    // 可选联动:若 my_device_link_sim 模拟器平台在线,异步通知其向该桩下发 RemoteReset;
+    // 模拟器不在线时静默忽略,不影响上方已完成的数据库逻辑
+    ncs::notifySimulatorReset(code);
+    ncs::info(this, QStringLiteral("远程重启"),
+              QStringLiteral("充电桩 %1 已重启并恢复正常").arg(code));
     refresh();
 }

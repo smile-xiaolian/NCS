@@ -1,0 +1,6 @@
+<RCC>
+  <qresource prefix="/">
+    <file alias="db/schema.sql">/home/lan/projects/NCS/core/db/schema.sql</file>
+  </qresource>
+</RCC>
+

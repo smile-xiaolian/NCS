@@ -4,7 +4,7 @@
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QPainter>
-#include <QSplitter>
+#include <QPen>
 #include <QVBoxLayout>
 #include <QtCharts/QBarCategoryAxis>
 #include <QtCharts/QBarSeries>
@@ -16,48 +16,50 @@
 
 #include "core/service/PlatformService.h"
 #include "FormatUtil.h"
-#include "MetricCard.h"
+#include "UiKit.h"
 
 
 RevenuePage::RevenuePage(QWidget *parent)
     : QWidget(parent)
 {
     auto *root = new QVBoxLayout(this);
-    auto *title = new QLabel(QStringLiteral("<h2>营收分析</h2>"));
-    root->addWidget(title);
+    root->setContentsMargins(0, 0, 0, 0);
+    root->setSpacing(14);
+    root->addWidget(ncs::pageHeading(QStringLiteral("营收分析"),
+                                     QStringLiteral("近 30 日经营与订单数据概览")));
 
     auto *cards = new QHBoxLayout;
-    cards->addWidget(ncs::metricCard(QStringLiteral("完成订单（单）"), &mOrderLabel));
-    cards->addWidget(ncs::metricCard(QStringLiteral("总营收（元）"), &mRevenueLabel));
-    cards->addWidget(ncs::metricCard(QStringLiteral("在线电桩（台）"), &mOnlineLabel));
-    cards->addWidget(ncs::metricCard(QStringLiteral("注册用户（人）"), &mUserLabel));
+    cards->setSpacing(12);
+    cards->addWidget(ncs::metricCard(QStringLiteral("完成订单（单）"), &mOrderLabel,
+                                     QStringLiteral("blue")));
+    cards->addWidget(ncs::metricCard(QStringLiteral("总营收（元）"), &mRevenueLabel,
+                                     QStringLiteral("green")));
+    cards->addWidget(ncs::metricCard(QStringLiteral("在线电桩（台）"), &mOnlineLabel,
+                                     QStringLiteral("cyan")));
+    cards->addWidget(ncs::metricCard(QStringLiteral("注册用户（人）"), &mUserLabel,
+                                     QStringLiteral("purple")));
     root->addLayout(cards);
 
-    auto *splitter = new QSplitter(Qt::Horizontal);
+    auto *chartRow = new QHBoxLayout;
+    chartRow->setSpacing(16);
 
-    auto *lineBox = new QWidget;
-    auto *lineLayout = new QVBoxLayout(lineBox);
-    auto *lineCaption = new QLabel(QStringLiteral("近 30 日营收趋势（完成订单）"));
-    lineCaption->setStyleSheet(QStringLiteral("font-weight:bold;"));
+    const ncs::Panel linePanel =
+        ncs::titledPanel(QStringLiteral("近 30 日营收趋势"), nullptr,
+                         QStringLiteral("单位：元"));
     mLineView = new QChartView;
     mLineView->setRenderHint(QPainter::Antialiasing);
-    lineLayout->addWidget(lineCaption);
-    lineLayout->addWidget(mLineView, 1);
-    splitter->addWidget(lineBox);
+    linePanel.body->addWidget(mLineView, 1);
+    chartRow->addWidget(linePanel.card, 1);
 
-    auto *barBox = new QWidget;
-    auto *barLayout = new QVBoxLayout(barBox);
-    auto *barCaption = new QLabel(QStringLiteral("近 30 日每日订单数"));
-    barCaption->setStyleSheet(QStringLiteral("font-weight:bold;"));
+    const ncs::Panel barPanel =
+        ncs::titledPanel(QStringLiteral("近 30 日每日订单数"), nullptr,
+                         QStringLiteral("单位：单"));
     mBarView = new QChartView;
     mBarView->setRenderHint(QPainter::Antialiasing);
-    barLayout->addWidget(barCaption);
-    barLayout->addWidget(mBarView, 1);
-    splitter->addWidget(barBox);
+    barPanel.body->addWidget(mBarView, 1);
+    chartRow->addWidget(barPanel.card, 1);
 
-    splitter->setStretchFactor(0, 1);
-    splitter->setStretchFactor(1, 1);
-    root->addWidget(splitter, 1);
+    root->addLayout(chartRow, 1);
 }
 
 void RevenuePage::refresh()
@@ -82,9 +84,14 @@ void RevenuePage::rebuildCharts()
     QStringList days;
     auto *lineSeries = new QLineSeries;
     lineSeries->setName(QStringLiteral("日营收（元）"));
-    lineSeries->setColor(QColor(QStringLiteral("#1f6feb")));
+    lineSeries->setColor(QColor(QStringLiteral("#4C8DFF")));
+    lineSeries->setPointsVisible(true);
+    QPen linePen(QColor(QStringLiteral("#4C8DFF")));
+    linePen.setWidth(2);
+    lineSeries->setPen(linePen);
 
     auto *barSet = new QBarSet(QStringLiteral("日订单数"));
+    barSet->setColor(QColor(QStringLiteral("#4C8DFF")));
     int index = 0;
     for (const QVariant &item : daysData) {
         const QVariantMap row = item.toMap();
@@ -96,16 +103,21 @@ void RevenuePage::rebuildCharts()
 
     // 折线图：近 30 日营收
     auto *lineChart = new QChart;
+    lineChart->setBackgroundVisible(false);
     lineChart->addSeries(lineSeries);
-    lineChart->setTitle(QStringLiteral("近 30 日营收趋势（元）"));
     lineChart->legend()->setVisible(true);
     lineChart->legend()->setAlignment(Qt::AlignBottom);
+    lineChart->legend()->setLabelColor(QColor(QStringLiteral("#7A8699")));
     auto *lineAxisX = new QBarCategoryAxis;
     lineAxisX->append(days);
+    lineAxisX->setGridLineVisible(false);
+    lineAxisX->setLabelsColor(QColor(QStringLiteral("#8A94A6")));
     lineChart->addAxis(lineAxisX, Qt::AlignBottom);
     lineSeries->attachAxis(lineAxisX);
     auto *lineAxisY = new QValueAxis;
     lineAxisY->setLabelFormat(QStringLiteral("%.0f"));
+    lineAxisY->setGridLineColor(QColor(QStringLiteral("#E9EEF5")));
+    lineAxisY->setLabelsColor(QColor(QStringLiteral("#8A94A6")));
     lineChart->addAxis(lineAxisY, Qt::AlignLeft);
     lineSeries->attachAxis(lineAxisY);
     mLineView->setChart(lineChart);
@@ -114,16 +126,21 @@ void RevenuePage::rebuildCharts()
     auto *barSeries = new QBarSeries;
     barSeries->append(barSet);
     auto *barChart = new QChart;
+    barChart->setBackgroundVisible(false);
     barChart->addSeries(barSeries);
-    barChart->setTitle(QStringLiteral("近 30 日每日订单数"));
     barChart->legend()->setVisible(true);
     barChart->legend()->setAlignment(Qt::AlignBottom);
+    barChart->legend()->setLabelColor(QColor(QStringLiteral("#7A8699")));
     auto *barAxisX = new QBarCategoryAxis;
     barAxisX->append(days);
+    barAxisX->setGridLineVisible(false);
+    barAxisX->setLabelsColor(QColor(QStringLiteral("#8A94A6")));
     barChart->addAxis(barAxisX, Qt::AlignBottom);
     barSeries->attachAxis(barAxisX);
     auto *barAxisY = new QValueAxis;
     barAxisY->setLabelFormat(QStringLiteral("%.0f"));
+    barAxisY->setGridLineColor(QColor(QStringLiteral("#E9EEF5")));
+    barAxisY->setLabelsColor(QColor(QStringLiteral("#8A94A6")));
     barChart->addAxis(barAxisY, Qt::AlignLeft);
     barSeries->attachAxis(barAxisY);
     mBarView->setChart(barChart);
