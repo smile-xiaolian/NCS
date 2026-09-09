@@ -6,6 +6,7 @@ add_executable(ncs_user
     ui/UserCenterPage.cpp
     ui/OrderListPage.cpp
     ui/SettlePage.cpp
+    ui/ChargingProgressWidget.cpp
     ui/OrderTicketDialog.cpp
     ui/MapWindow.cpp
     ui/UserMainWindow.cpp
