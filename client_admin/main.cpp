@@ -3,6 +3,7 @@
 
 #include "core/service/PlatformService.h"
 #include "ui/AdminMainWindow.h"
+#include "ui/AdminStyle.h"
 
 int main(int argc, char *argv[])
 {
@@ -13,6 +14,7 @@ int main(int argc, char *argv[])
                               QStringLiteral("数据库初始化失败：") + error);
         return 1;
     }
+    app.setStyleSheet(ncs::adminStyleSheet());
     AdminMainWindow window;
     window.show();
     return app.exec();

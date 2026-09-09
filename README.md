@@ -19,6 +19,30 @@ cmake --build build -j
 
 管理员初始帐号：`admin` / `123456`。用户端验证码为界面显示的模拟验证码。
 
+## 与 my_device_link_sim 模拟器联动（可选）
+
+子目录 `my_device_link_sim/` 是独立的充电桩通信模拟器工程（自带 CMake，需单独构建）。
+两层联动均已实现：
+
+1. **状态上行（模拟器 → 管理端）**：模拟器平台端 `platform_app` 启动时自动查找本数据库，
+   `--demo` 模式会把在册电桩全部接入为虚拟桩，模拟状态实时回写 `charger.status` 并追加
+   `ops_log`，管理端刷新即可看到。
+2. **指令下行（管理端 → 模拟器）**：管理端「充电桩管理」页点「远程重启」时，除原有数据库
+   逻辑外，会异步调用模拟器平台的 `http://127.0.0.1:9080/reset?pileCode=XXX`，让对应
+   模拟桩真正执行 RemoteReset（见 `client_admin/ui/DeviceLinkHook.cpp`）。
+
+下行挂钩为可选附加项：模拟器不在线时静默忽略，主工程功能完全不受影响。可在 `ncs_admin`
+同级目录放 `config.ini` 调整：
+
+```ini
+[device_link]
+hook_enabled=true
+reset_url=http://127.0.0.1:9080/reset
+```
+
+典型演示顺序：先运行一次 `ncs_admin` 建库录桩 → 启动
+`platform_app --port 9000 --demo` → 再开 `ncs_admin` 操作远程重启。
+
 ## 预测与大屏
 
 完整用法见 [ml/使用说明.md](ml/使用说明.md)。

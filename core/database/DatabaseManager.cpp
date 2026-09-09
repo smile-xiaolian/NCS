@@ -27,6 +27,9 @@ bool DatabaseManager::open(const QString& path)
     QSqlQuery query(m_db);
     query.exec("PRAGMA journal_mode = WAL");
     query.exec("PRAGMA foreign_keys = ON");
+    // 多端(ncs_user/ncs_admin/模拟器平台)共享同一库:写锁相撞时等待 5 秒再重试,
+    // 而不是立刻报 "database is locked" 导致初始化失败
+    query.exec("PRAGMA busy_timeout = 5000");
 
     m_isOpen = true;
     return true;

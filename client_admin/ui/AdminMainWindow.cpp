@@ -6,6 +6,7 @@
 #include <QListWidget>
 #include <QMessageBox>
 #include <QPushButton>
+#include <QFrame>
 #include <QStackedWidget>
 #include <QStatusBar>
 #include <QVBoxLayout>
@@ -16,62 +17,86 @@
 #include "FormatUtil.h"
 #include "RevenuePage.h"
 #include "StationManagePage.h"
+#include "UiKit.h"
 #include "UserManagePage.h"
 
 AdminMainWindow::AdminMainWindow(QWidget *parent)
     : QMainWindow(parent)
 {
     setWindowTitle(QStringLiteral("NCS 运营管理后台"));
-    resize(1280, 800);
+    resize(1360, 860);
+    setMinimumSize(1200, 720);
 
     m_stack = new QStackedWidget(this);
     setCentralWidget(m_stack);
 
     buildLoginPage();
     buildWorkspace();
-
-    statusBar()->addPermanentWidget(
-        new QLabel(QStringLiteral("数据库：") + PlatformService::databasePath()));
     m_stack->setCurrentWidget(m_loginPage);
 }
 
 void AdminMainWindow::buildLoginPage()
 {
     m_loginPage = new QWidget;
+    m_loginPage->setObjectName(QStringLiteral("loginPage"));
     auto *root = new QVBoxLayout(m_loginPage);
     root->addStretch(2);
 
-    auto *panel = new QWidget;
-    panel->setFixedWidth(380);
+    auto *panel = new QFrame;
+    panel->setObjectName(QStringLiteral("loginCard"));
+    panel->setFixedWidth(400);
     auto *form = new QVBoxLayout(panel);
+    form->setContentsMargins(40, 36, 40, 30);
+    form->setSpacing(8);
 
-    auto *title = new QLabel(QStringLiteral("<h2 style='color:#1f6feb;'>NCS 运营管理后台</h2>"));
+    auto *brandRow = new QHBoxLayout;
+    brandRow->setSpacing(12);
+    auto *logo = new QLabel(QStringLiteral("N"), panel);
+    logo->setObjectName(QStringLiteral("brandLogo"));
+    logo->setFixedSize(44, 44);
+    logo->setAlignment(Qt::AlignCenter);
+    brandRow->addStretch(1);
+    brandRow->addWidget(logo);
+    brandRow->addStretch(1);
+    form->addLayout(brandRow);
+    form->addSpacing(12);
+
+    auto *title = new QLabel(QStringLiteral("NCS 运营管理后台"), panel);
+    title->setObjectName(QStringLiteral("loginTitle"));
     title->setAlignment(Qt::AlignCenter);
-    auto *subtitle = new QLabel(QStringLiteral("管理员登录"));
+    auto *subtitle = new QLabel(QStringLiteral("管理员登录 · 充电网络运营管理系统"), panel);
+    subtitle->setObjectName(QStringLiteral("loginSub"));
     subtitle->setAlignment(Qt::AlignCenter);
-    subtitle->setStyleSheet(QStringLiteral("color:#8b949e;"));
 
-    m_account = new QLineEdit;
+    m_account = new QLineEdit(panel);
     m_account->setPlaceholderText(QStringLiteral("管理员账号"));
-    m_password = new QLineEdit;
+    m_password = new QLineEdit(panel);
     m_password->setPlaceholderText(QStringLiteral("密码"));
     m_password->setEchoMode(QLineEdit::Password);
 
-    auto *loginButton = new QPushButton(QStringLiteral("登 录"));
+    auto *loginButton = new QPushButton(QStringLiteral("登 录"), panel);
+    loginButton->setObjectName(QStringLiteral("loginButton"));
+    loginButton->setCursor(Qt::PointingHandCursor);
     loginButton->setDefault(true);
 
-    auto *hint = new QLabel(QStringLiteral("默认账号 admin / 密码 123456"));
+    auto *divider = new QFrame(panel);
+    divider->setObjectName(QStringLiteral("divider"));
+    divider->setFixedHeight(1);
+    auto *hint = new QLabel(QStringLiteral("默认账号 admin / 密码 123456"), panel);
+    hint->setObjectName(QStringLiteral("loginHint"));
     hint->setAlignment(Qt::AlignCenter);
-    hint->setStyleSheet(QStringLiteral("color:#8b949e;font-size:12px;"));
 
     form->addWidget(title);
+    form->addSpacing(2);
     form->addWidget(subtitle);
-    form->addSpacing(16);
+    form->addSpacing(22);
     form->addWidget(m_account);
-    form->addSpacing(8);
+    form->addSpacing(12);
     form->addWidget(m_password);
-    form->addSpacing(16);
+    form->addSpacing(18);
     form->addWidget(loginButton);
+    form->addSpacing(16);
+    form->addWidget(divider);
     form->addSpacing(10);
     form->addWidget(hint);
 
@@ -92,17 +117,82 @@ void AdminMainWindow::buildLoginPage()
 void AdminMainWindow::buildWorkspace()
 {
     m_workspace = new QWidget;
+    m_workspace->setObjectName(QStringLiteral("workspace"));
     auto *root = new QHBoxLayout(m_workspace);
     root->setContentsMargins(0, 0, 0, 0);
     root->setSpacing(0);
 
+    // 侧边栏:品牌区 + 导航 + 账号卡片
+    auto *sidebar = new QFrame(m_workspace);
+    sidebar->setObjectName(QStringLiteral("sidebar"));
+    sidebar->setFixedWidth(212);
+    auto *sidebarLayout = new QVBoxLayout(sidebar);
+    sidebarLayout->setContentsMargins(14, 18, 14, 16);
+    sidebarLayout->setSpacing(0);
+
+    auto *brandRow = new QHBoxLayout;
+    brandRow->setSpacing(10);
+    auto *logo = new QLabel(QStringLiteral("N"), sidebar);
+    logo->setObjectName(QStringLiteral("brandLogo"));
+    logo->setFixedSize(38, 38);
+    logo->setAlignment(Qt::AlignCenter);
+    brandRow->addWidget(logo);
+    auto *brandText = new QVBoxLayout;
+    brandText->setSpacing(1);
+    auto *brandTitle = new QLabel(QStringLiteral("NCS 运营平台"), sidebar);
+    brandTitle->setObjectName(QStringLiteral("brandTitle"));
+    auto *brandSub = new QLabel(QStringLiteral("充电网络运营管理"), sidebar);
+    brandSub->setObjectName(QStringLiteral("brandSub"));
+    brandText->addWidget(brandTitle);
+    brandText->addWidget(brandSub);
+    brandRow->addLayout(brandText, 1);
+    sidebarLayout->addLayout(brandRow);
+    sidebarLayout->addSpacing(24);
+
+    auto *sectionLabel = new QLabel(QStringLiteral("功能菜单"), sidebar);
+    sectionLabel->setObjectName(QStringLiteral("sectionLabel"));
+    sidebarLayout->addWidget(sectionLabel);
+    sidebarLayout->addSpacing(6);
+
     m_nav = new QListWidget;
-    m_nav->setFixedWidth(190);
+    m_nav->setObjectName(QStringLiteral("nav"));
+    m_nav->setFrameShape(QFrame::NoFrame);
+    m_nav->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     m_nav->addItems({QStringLiteral("营收分析"),
                      QStringLiteral("电桩状态总览"),
                      QStringLiteral("充电桩管理"),
                      QStringLiteral("充电站管理"),
                      QStringLiteral("用户管理")});
+    sidebarLayout->addWidget(m_nav, 1);
+
+    auto *accountCard = new QFrame(sidebar);
+    accountCard->setObjectName(QStringLiteral("accountCard"));
+    auto *accountLayout = new QHBoxLayout(accountCard);
+    accountLayout->setContentsMargins(12, 10, 12, 10);
+    accountLayout->setSpacing(8);
+    auto *onlineDot = new QLabel(accountCard);
+    onlineDot->setObjectName(QStringLiteral("onlineDot"));
+    onlineDot->setFixedSize(8, 8);
+    accountLayout->addWidget(onlineDot);
+    auto *accountText = new QVBoxLayout;
+    accountText->setSpacing(0);
+    m_accountName = new QLabel(QStringLiteral("admin"), accountCard);
+    m_accountName->setObjectName(QStringLiteral("accountName"));
+    auto *accountRole = new QLabel(QStringLiteral("管理员 · 已登录"), accountCard);
+    accountRole->setObjectName(QStringLiteral("accountRole"));
+    accountText->addWidget(m_accountName);
+    accountText->addWidget(accountRole);
+    accountLayout->addLayout(accountText, 1);
+    sidebarLayout->addWidget(accountCard);
+
+    root->addWidget(sidebar);
+
+    // 右侧内容区
+    auto *pageHost = new QWidget(m_workspace);
+    pageHost->setObjectName(QStringLiteral("pageHost"));
+    auto *pageLayout = new QVBoxLayout(pageHost);
+    pageLayout->setContentsMargins(20, 18, 20, 14);
+    pageLayout->setSpacing(0);
 
     m_pages = new QStackedWidget;
     m_revenuePage = new RevenuePage;
@@ -115,9 +205,8 @@ void AdminMainWindow::buildWorkspace()
     m_pages->addWidget(m_chargerPage);
     m_pages->addWidget(m_stationPage);
     m_pages->addWidget(m_userPage);
-
-    root->addWidget(m_nav);
-    root->addWidget(m_pages, 1);
+    pageLayout->addWidget(m_pages, 1);
+    root->addWidget(pageHost, 1);
 
     connect(m_nav, &QListWidget::currentRowChanged, this, [this](int row) {
         if (row < 0) {
@@ -136,19 +225,20 @@ void AdminMainWindow::tryLogin()
     const QString account = m_account->text().trimmed();
     const QString password = m_password->text();
     if (account.isEmpty() || password.isEmpty()) {
-        QMessageBox::information(this, QStringLiteral("提示"),
-                                 QStringLiteral("请输入账号和密码"));
+        ncs::info(this, QStringLiteral("提示"),
+                  QStringLiteral("请输入账号和密码"));
         return;
     }
     if (!PlatformService::adminLogin(account, password)) {
-        QMessageBox::warning(this, QStringLiteral("登录失败"),
-                             QStringLiteral("账号或密码错误，请重新输入"));
+        ncs::warning(this, QStringLiteral("登录失败"),
+                     QStringLiteral("账号或密码错误，请重新输入"));
         m_password->selectAll();
         m_password->setFocus();
         return;
     }
 
     m_adminAccount = account;
+    m_accountName->setText(account);
     m_password->clear();
     refreshAll();
     m_stack->setCurrentWidget(m_workspace);

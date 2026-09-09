@@ -1,0 +1,6 @@
+<RCC>
+    <qresource prefix="/icons">
+        <file alias="spin_up.png">icons/spin_up.png</file>
+        <file alias="spin_down.png">icons/spin_down.png</file>
+    </qresource>
+</RCC>

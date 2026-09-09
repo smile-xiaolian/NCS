@@ -5,6 +5,7 @@
 
 class QLineEdit;
 class QListWidget;
+class QLabel;
 class QStackedWidget;
 class ChargerManagePage;
 class ChargerStatusPage;
@@ -32,6 +33,7 @@ private:
     QStackedWidget *m_pages = nullptr;
     QLineEdit *m_account = nullptr;
     QLineEdit *m_password = nullptr;
+    QLabel *m_accountName = nullptr;
     QString m_adminAccount;
 
     RevenuePage *m_revenuePage = nullptr;
